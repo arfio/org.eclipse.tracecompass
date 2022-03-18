@@ -72,6 +72,11 @@ public class TmfStatisticsTotalsModule extends TmfStateSystemAnalysisModule {
     }
 
     @Override
+    protected StateSystemBackendType getBackendType() {
+        return StateSystemBackendType.PARTIAL;
+    }
+
+    @Override
     protected String getSsFileName() {
         return "statistics-totals.ht"; //$NON-NLS-1$
     }

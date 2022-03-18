@@ -429,8 +429,6 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         /* Size of the blocking queue to use when building a state history */
         final int QUEUE_SIZE = 10000;
 
-        final long granularity = 50000;
-
         /* 2 */
         IStateHistoryBackend realBackend = null;
         try {
@@ -454,6 +452,13 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         partialProvider.assignTargetStateSystem(pss);
 
         /* 3 */
+        ITmfTrace trace = provider.getTrace();
+        long endTime = trace.readEnd().getValue();
+        long granularity = (endTime - trace.getStartTime().getValue()) / 100000;
+        if (granularity <= 0) {
+            // Default value for granularity if trace is small
+            granularity = 1000;
+        }
         IStateHistoryBackend partialBackend = new PartialHistoryBackend(id + ".partial", partialProvider, pss, realBackend, granularity, backend); //$NON-NLS-1$
 
         /* 4 */

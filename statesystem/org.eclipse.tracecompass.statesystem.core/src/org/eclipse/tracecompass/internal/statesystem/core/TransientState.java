@@ -224,6 +224,7 @@ public class TransientState {
      */
     public void replaceOngoingState(List<ITmfStateInterval> newStateIntervals) {
         final int size = newStateIntervals.size();
+        fIsActive = true;
 
         fRWLock.writeLock().lock();
         try {
