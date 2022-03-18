@@ -182,7 +182,7 @@ public class StateSystem implements ITmfStateSystemBuilder {
      * Method used by the attribute tree when creating new attributes, to keep
      * the attribute count in the transient state in sync.
      */
-    public void addEmptyAttribute() {
+    public synchronized void addEmptyAttribute() {
         transState.addEmptyEntry();
     }
 
@@ -368,7 +368,7 @@ public class StateSystem implements ITmfStateSystemBuilder {
     // --------------------------------------------------------------------------
 
     @Override
-    public void modifyAttribute(long t, Object value, int attributeQuark)
+    public synchronized void modifyAttribute(long t, Object value, int attributeQuark)
             throws TimeRangeException, StateValueTypeException {
         transState.processStateChange(t, value, attributeQuark);
     }
@@ -520,12 +520,12 @@ public class StateSystem implements ITmfStateSystemBuilder {
     }
 
     @Override
-    public void updateOngoingState(ITmfStateValue newValue, int attributeQuark) {
+    public synchronized void updateOngoingState(ITmfStateValue newValue, int attributeQuark) {
         transState.changeOngoingStateValue(attributeQuark, newValue.unboxValue());
     }
 
     @Override
-    public void updateOngoingState(Object newValue, int attributeQuark) {
+    public synchronized void updateOngoingState(Object newValue, int attributeQuark) {
         transState.changeOngoingStateValue(attributeQuark, newValue);
     }
 
@@ -537,7 +537,7 @@ public class StateSystem implements ITmfStateSystemBuilder {
      * @param newStateIntervals
      *            The new List of state values to use as ongoing state info
      */
-    protected void replaceOngoingState(@NonNull List<@NonNull ITmfStateInterval> newStateIntervals) {
+    protected synchronized void replaceOngoingState(@NonNull List<@NonNull ITmfStateInterval> newStateIntervals) {
         transState.replaceOngoingState(newStateIntervals);
     }
 

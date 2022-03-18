@@ -126,6 +126,11 @@ public class ArrayIntegerRangeCondition implements IntegerRangeCondition {
     }
 
     @Override
+    public int[] getIntegerArray() {
+        return fQuarkArray;
+    }
+
+    @Override
     public @Nullable IntegerRangeCondition subCondition(int from, int to) {
         if (from <= min() && max() <= to) {
             // all the elements are within the bounds

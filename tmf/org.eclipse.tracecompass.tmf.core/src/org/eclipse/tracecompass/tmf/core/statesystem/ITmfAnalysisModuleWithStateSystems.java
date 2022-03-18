@@ -44,7 +44,7 @@ public interface ITmfAnalysisModuleWithStateSystems extends IAnalysisModule {
      * Gets or creates the state provider for the analysis module
      *
      * @return the state provider
-     * @since 8.0
+     * @since 9.2
      */
     default ITmfStateProvider getOrCreateStateProvider() {
         /* Returning this just because we have to return something */

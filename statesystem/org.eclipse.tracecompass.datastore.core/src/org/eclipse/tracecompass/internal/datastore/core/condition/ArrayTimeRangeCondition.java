@@ -119,4 +119,8 @@ public class ArrayTimeRangeCondition implements TimeRangeCondition {
         return "ArrayTimeRangeCondition[" + fTimeArray.length + "](" + min() + '\u2025' + max() + ')'; //$NON-NLS-1$ //$NON-NLS-2$
     }
 
+    @Override
+    public long[] getTimeArray() {
+        return fTimeArray;
+    }
 }
