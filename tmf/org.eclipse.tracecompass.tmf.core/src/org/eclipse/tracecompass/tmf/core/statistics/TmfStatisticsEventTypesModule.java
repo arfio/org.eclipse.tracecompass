@@ -66,6 +66,10 @@ public class TmfStatisticsEventTypesModule extends TmfStateSystemAnalysisModule 
         return "statistics-types.ht"; //$NON-NLS-1$
     }
 
+    @Override
+    protected StateSystemBackendType getBackendType() {
+        return StateSystemBackendType.PARTIAL;
+    }
 
     /**
      * The state provider for traces statistics that use TmfStateStatistics. It

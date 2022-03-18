@@ -66,6 +66,13 @@ public interface IntegerRangeCondition {
     boolean intersects(int low, int high);
 
     /**
+     * Gets the integer range condition as an array of integers
+     *
+     * @return array of integers matching the range.
+     */
+    int[] getIntegerArray();
+
+    /**
      * Reduce the Condition to elements or the range within bounds from and to.
      * <code>null</code> is returned if the resulting condition is empty.
      *

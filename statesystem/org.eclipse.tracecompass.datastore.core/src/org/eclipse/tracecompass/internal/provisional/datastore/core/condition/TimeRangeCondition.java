@@ -42,6 +42,13 @@ public interface TimeRangeCondition {
     long max();
 
     /**
+     * Gets the time range condition as an array of timestamps
+     *
+     * @return array of timestamps or empty array if the range is continuous
+     */
+    long[] getTimeArray();
+
+    /**
      * Test whether a value is within this specific range boundaries. If the
      * range is continuous, it will return <code>true</code> if the value is
      * between the lower and upper bounds. If the range is discrete, it will
