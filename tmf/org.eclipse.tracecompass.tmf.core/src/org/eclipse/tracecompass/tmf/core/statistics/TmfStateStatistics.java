@@ -123,7 +123,11 @@ public class TmfStateStatistics implements ITmfStatistics {
                 times.add(fTotalsStats.getCurrentEndTime());
                 break;
             }
-            times.add(timeRequested[i]);
+            if (timeRequested[i] < fTotalsStats.getStartTime()) {
+                list.add(0L); // Padding for times before trace start
+            } else {
+                times.add(timeRequested[i]);
+            }
         }
         try (FlowScopeLog log = new FlowScopeLogBuilder(LOGGER, Level.FINE, "StateStatistics:histogramQuery").build()) { //$NON-NLS-1$
             Iterable<@NonNull ITmfStateInterval> intervals = fTotalsStats.query2D(Collections.singletonList(quark), times);
