@@ -76,4 +76,8 @@ public class ContinuousTimeRangeCondition implements TimeRangeCondition {
         return "ContinuousTimeRangeCondition: (" + min() + '\u2025' + max() + ')'; //$NON-NLS-1$
     }
 
+    @Override
+    public long[] getTimeArray() {
+        return new long[] { };
+    }
 }
