@@ -60,6 +60,7 @@ import org.eclipse.tracecompass.tmf.core.statesystem.ITmfStateProvider.FutureEve
 import org.eclipse.tracecompass.tmf.core.timestamp.TmfTimeRange;
 import org.eclipse.tracecompass.tmf.core.trace.ITmfTrace;
 import org.eclipse.tracecompass.tmf.core.trace.ITmfTraceCompleteness;
+import org.eclipse.tracecompass.tmf.core.trace.ITmfTraceKnownSize;
 import org.eclipse.tracecompass.tmf.core.trace.TmfTraceManager;
 import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
 import org.eclipse.tracecompass.tmf.core.trace.experiment.TmfExperiment;
@@ -429,8 +430,6 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         /* Size of the blocking queue to use when building a state history */
         final int QUEUE_SIZE = 10000;
 
-        final long granularity = 50000;
-
         /* 2 */
         IStateHistoryBackend realBackend = null;
         try {
@@ -454,6 +453,20 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         partialProvider.assignTargetStateSystem(pss);
 
         /* 3 */
+        ITmfTrace trace = provider.getTrace();
+        long endTime = trace.readEnd().getValue();
+        long minimumNSamples = 10000;
+        long nSamples = minimumNSamples;
+        if (trace instanceof ITmfTraceKnownSize) {
+            long averageNumberOfEvents = 10000;
+            nSamples = ((ITmfTraceKnownSize) trace).size() / averageNumberOfEvents;
+            nSamples = Long.max(nSamples, minimumNSamples);
+        }
+        long granularity = (endTime - trace.getStartTime().getValue()) / nSamples;
+        if (granularity <= 0) {
+            // Default value for granularity if trace is small
+            granularity = 1000;
+        }
         IStateHistoryBackend partialBackend = new PartialHistoryBackend(id + ".partial", partialProvider, pss, realBackend, granularity, backend); //$NON-NLS-1$
 
         /* 4 */
