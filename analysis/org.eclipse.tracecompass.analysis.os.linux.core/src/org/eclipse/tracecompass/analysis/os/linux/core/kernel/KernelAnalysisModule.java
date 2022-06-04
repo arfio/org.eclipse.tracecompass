@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.analysis.os.linux.core.trace.DefaultEventLayout;
 import org.eclipse.tracecompass.analysis.os.linux.core.trace.IKernelAnalysisEventLayout;
 import org.eclipse.tracecompass.analysis.os.linux.core.trace.IKernelTrace;
@@ -41,6 +42,7 @@ public class KernelAnalysisModule extends TmfStateSystemAnalysisModule {
 
     /** The ID of this analysis module */
     public static final String ID = "org.eclipse.tracecompass.analysis.os.linux.kernel"; //$NON-NLS-1$
+    private @Nullable ITmfStateProvider  fStateProvider;
 
     /*
      * TODO: Decide which events should be mandatory for the analysis, once the
@@ -86,17 +88,29 @@ public class KernelAnalysisModule extends TmfStateSystemAnalysisModule {
 
     @Override
     protected @NonNull ITmfStateProvider createStateProvider() {
-        ITmfTrace trace = checkNotNull(getTrace());
-        IKernelAnalysisEventLayout layout;
+        return getOrCreateStateProvider();
+    }
 
-        if (trace instanceof IKernelTrace) {
-            layout = ((IKernelTrace) trace).getKernelEventLayout();
-        } else {
-            /* Fall-back to the base LttngEventLayout */
-            layout = DefaultEventLayout.getInstance();
+    /**
+     * @since 6.0
+     */
+    @Override
+    public ITmfStateProvider getOrCreateStateProvider() {
+        if (fStateProvider == null) {
+
+            ITmfTrace trace = checkNotNull(getTrace());
+            IKernelAnalysisEventLayout layout;
+
+            if (trace instanceof IKernelTrace) {
+                layout = ((IKernelTrace) trace).getKernelEventLayout();
+            } else {
+                /* Fall-back to the base LttngEventLayout */
+                layout = DefaultEventLayout.getInstance();
+            }
+
+            fStateProvider = new KernelStateProvider(trace, layout);
         }
-
-        return new KernelStateProvider(trace, layout);
+        return checkNotNull(fStateProvider);
     }
 
     @Override
