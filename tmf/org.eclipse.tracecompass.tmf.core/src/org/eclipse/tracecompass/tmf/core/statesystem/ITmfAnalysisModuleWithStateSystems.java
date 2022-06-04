@@ -41,6 +41,17 @@ public interface ITmfAnalysisModuleWithStateSystems extends IAnalysisModule {
     }
 
     /**
+     * Gets or creates the state provider for the analysis module
+     *
+     * @return the state provider
+     * @since 8.0
+     */
+    default ITmfStateProvider getOrCreateStateProvider() {
+        /* Returning this just because we have to return something */
+        return ((ITmfStateProvider) getStateSystems()).getNewInstance();
+    }
+
+    /**
      * Return a specific state system provided by this analysis.
      *
      * @param id

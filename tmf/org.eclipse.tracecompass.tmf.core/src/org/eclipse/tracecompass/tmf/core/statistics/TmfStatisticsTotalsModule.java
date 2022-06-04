@@ -44,6 +44,8 @@ public class TmfStatisticsTotalsModule extends TmfStateSystemAnalysisModule {
 
     private static final @NonNull String NAME = "TMF Statistics, event totals"; //$NON-NLS-1$
 
+    private ITmfStateProvider fStateProvider;
+
     /**
      * Constructor
      */
@@ -55,7 +57,18 @@ public class TmfStatisticsTotalsModule extends TmfStateSystemAnalysisModule {
 
     @Override
     protected ITmfStateProvider createStateProvider() {
-        return new StatsProviderTotals(checkNotNull(getTrace()));
+        return getOrCreateStateProvider();
+    }
+
+    /**
+     * @since 8.0
+     */
+    @Override
+    public ITmfStateProvider getOrCreateStateProvider() {
+        if (fStateProvider == null) {
+            fStateProvider = new StatsProviderTotals(checkNotNull(getTrace()));
+        }
+        return checkNotNull(fStateProvider);
     }
 
     @Override
