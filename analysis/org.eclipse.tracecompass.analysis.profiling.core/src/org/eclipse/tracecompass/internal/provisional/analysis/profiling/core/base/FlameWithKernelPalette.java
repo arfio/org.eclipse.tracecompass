@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
  * A data palette that adds kernel states
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public class FlameWithKernelPalette implements IDataPalette {
 

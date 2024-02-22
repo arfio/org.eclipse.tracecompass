@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 
-package org.eclipse.tracecompass.internal.analysis.profiling.core.callgraph2;
+package org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.tracecompass.analysis.timing.core.statistics.IStatistics;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.WeightedTree;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.WeightedTree;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackSymbol;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
  * call stacks.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public class AggregatedCallSite extends WeightedTree<ICallStackSymbol> {
 

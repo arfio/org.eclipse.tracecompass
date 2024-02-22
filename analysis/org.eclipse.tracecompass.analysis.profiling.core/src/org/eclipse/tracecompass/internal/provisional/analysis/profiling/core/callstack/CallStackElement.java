@@ -24,6 +24,7 @@ import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tre
  * A basic callstack element implementing the methods of the interface.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public class CallStackElement implements ICallStackElement {
 

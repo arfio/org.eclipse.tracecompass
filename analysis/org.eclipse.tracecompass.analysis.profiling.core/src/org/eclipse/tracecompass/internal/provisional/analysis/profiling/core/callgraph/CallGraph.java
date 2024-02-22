@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callgraph2.AggregatedCallSite;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackElement;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackSymbol;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeSet;
@@ -31,6 +30,7 @@ import com.google.common.collect.Multimap;
  * TODO: Have an interface and keep the add* method internal
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public class CallGraph implements IWeightedTreeSet<ICallStackSymbol, ICallStackElement, AggregatedCallSite> {
 

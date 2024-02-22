@@ -22,12 +22,12 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.analysis.os.linux.core.model.HostThread;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.callgraph2.CalledFunctionFactory;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callstack.CallStackSeries.IThreadIdProvider;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ModelManager;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ProcessStatusInterval;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackElement;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.ICalledFunction;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackHostUtils.IHostIdProvider;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackSeries.IThreadIdProvider;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.model.IHostModel;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystem;
 import org.eclipse.tracecompass.statesystem.core.StateSystemUtils;
@@ -46,6 +46,7 @@ import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
  * TODO: Is that true? the reverse pyramid?
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public class CallStack {
 

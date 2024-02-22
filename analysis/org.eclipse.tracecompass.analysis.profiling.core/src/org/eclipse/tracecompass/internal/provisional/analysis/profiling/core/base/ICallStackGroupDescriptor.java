@@ -58,6 +58,7 @@ import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tre
  * "[pid]" would be the symbol key group, used to resolve the symbols.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public interface ICallStackGroupDescriptor extends IWeightedTreeGroupDescriptor {
 

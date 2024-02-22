@@ -24,10 +24,10 @@ import java.util.List;
 
 import org.eclipse.tracecompass.analysis.profiling.core.callstack.CallStackStateProvider;
 import org.eclipse.tracecompass.analysis.profiling.core.tests.stubs2.CallStackAnalysisStub;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callstack.CallStackSeries;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented.InstrumentedCallStackAnalysis;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented.InstrumentedGroupDescriptor;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackGroupDescriptor;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackSeries;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.instrumented.InstrumentedCallStackAnalysis;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystem;
 import org.eclipse.tracecompass.statesystem.core.exceptions.AttributeNotFoundException;
 import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;

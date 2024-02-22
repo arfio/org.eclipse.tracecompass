@@ -30,6 +30,7 @@ import org.eclipse.tracecompass.tmf.core.trace.TmfTraceManager;
  * the duration of two events
  *
  * @author Sonia Farrah
+ * @since 2.5
  */
 public final class SymbolAspect implements ISegmentAspect {
     /**

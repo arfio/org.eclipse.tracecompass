@@ -28,7 +28,6 @@ import org.eclipse.tracecompass.common.core.format.DecimalUnitFormat;
 import org.eclipse.tracecompass.common.core.format.SubSecondTimeWithUnitFormat;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.DefaultDataPalette;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.DepthGroupDescriptor;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.WeightedTree;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.IDataPalette;
 import org.eclipse.tracecompass.tmf.core.timestamp.ITmfTimestamp;
 
@@ -50,6 +49,7 @@ import org.eclipse.tracecompass.tmf.core.timestamp.ITmfTimestamp;
  *            trees will be grouped in a hierarchical style
  * @param <T>
  *            The type of the tree provided
+ * @since 2.5
  */
 public interface IWeightedTreeProvider<@NonNull N, E, @NonNull T extends WeightedTree<N>> {
 

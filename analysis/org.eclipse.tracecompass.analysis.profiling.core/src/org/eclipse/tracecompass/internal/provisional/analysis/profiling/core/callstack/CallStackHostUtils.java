@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented.InstrumentedCallStackElement;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackElement;
@@ -31,6 +30,7 @@ import org.eclipse.tracecompass.tmf.core.trace.ITmfTrace;
  * callstack analyses.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public final class CallStackHostUtils {
 
@@ -58,7 +58,7 @@ public final class CallStackHostUtils {
         }
 
         @Override
-        public @NonNull String apply(Long time) {
+        public String apply(Long time) {
             return fHostId;
         }
     }
@@ -79,7 +79,7 @@ public final class CallStackHostUtils {
         }
 
         @Override
-        public @NonNull String apply(Long time) {
+        public String apply(Long time) {
             ITmfStateInterval interval = fInterval;
             String hostId = fLastHostId;
             if (interval != null && interval.intersects(time)) {
@@ -115,7 +115,7 @@ public final class CallStackHostUtils {
         }
 
         @Override
-        public @NonNull String apply(Long time) {
+        public String apply(Long time) {
             return fHostId;
         }
     }
@@ -142,7 +142,7 @@ public final class CallStackHostUtils {
         }
 
         @Override
-        public @NonNull IHostIdProvider apply(ICallStackElement element) {
+        public IHostIdProvider apply(ICallStackElement element) {
             return new TraceHostIdProvider(fHostId);
         }
     }
@@ -166,7 +166,7 @@ public final class CallStackHostUtils {
         }
 
         @Override
-        public @NonNull IHostIdProvider apply(ICallStackElement element) {
+        public IHostIdProvider apply(ICallStackElement element) {
             if (!(element instanceof InstrumentedCallStackElement)) {
                 throw new IllegalArgumentException();
             }
@@ -206,7 +206,7 @@ public final class CallStackHostUtils {
         }
 
         @Override
-        public @NonNull IHostIdProvider apply(ICallStackElement element) {
+        public IHostIdProvider apply(ICallStackElement element) {
             if (!(element instanceof InstrumentedCallStackElement)) {
                 throw new IllegalArgumentException();
             }

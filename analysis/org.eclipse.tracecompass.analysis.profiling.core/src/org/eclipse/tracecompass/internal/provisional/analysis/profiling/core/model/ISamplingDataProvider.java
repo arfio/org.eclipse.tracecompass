@@ -13,12 +13,13 @@ package org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.mo
 
 import java.util.Collection;
 
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callgraph2.AggregatedCallSite;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.AggregatedCallSite;
 
 /**
  * Interfaces that classes providing sampling data for threads can implement
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public interface ISamplingDataProvider {
 

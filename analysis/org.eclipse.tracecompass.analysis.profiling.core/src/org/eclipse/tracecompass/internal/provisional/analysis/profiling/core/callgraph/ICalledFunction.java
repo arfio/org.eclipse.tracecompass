@@ -21,6 +21,7 @@ import org.eclipse.tracecompass.segmentstore.core.segment.interfaces.INamedSegme
  *
  * @author Matthew Khouzam
  * @author Sonia Farrah
+ * @since 2.5
  */
 public interface ICalledFunction extends INamedSegment {
 

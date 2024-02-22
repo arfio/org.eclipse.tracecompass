@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 
-package org.eclipse.tracecompass.internal.analysis.profiling.core.callstack;
+package org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,9 +32,6 @@ import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ModelMana
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackElement;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackGroupDescriptor;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.ICalledFunction;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStack;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackDepth;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackElement;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackHostUtils.IHostIdProvider;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackHostUtils.IHostIdResolver;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.model.IHostModel;
@@ -96,6 +93,7 @@ import com.google.common.collect.Multimap;
  * and each leaf elements has one {@link CallStack} object.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public class CallStackSeries implements ISegmentStore<ISegment> {
 

@@ -20,6 +20,7 @@ import org.eclipse.jdt.annotation.Nullable;
  * node can be linked to a specific object.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public interface ITree {
 
