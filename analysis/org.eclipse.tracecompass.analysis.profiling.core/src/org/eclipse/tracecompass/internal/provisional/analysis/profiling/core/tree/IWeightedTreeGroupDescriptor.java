@@ -48,6 +48,7 @@ import org.eclipse.jdt.annotation.Nullable;
  * levels in a tree hierarchy.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public interface IWeightedTreeGroupDescriptor {
 

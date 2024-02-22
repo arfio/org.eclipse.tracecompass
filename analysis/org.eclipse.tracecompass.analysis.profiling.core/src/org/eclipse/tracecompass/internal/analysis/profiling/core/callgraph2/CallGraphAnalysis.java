@@ -23,7 +23,6 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.Activator;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callstack.CallStackSeries;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented.InstrumentedCallStackElement;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ModelManager;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ProcessStatusInterval;
@@ -31,10 +30,13 @@ import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.bas
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackElement;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackSymbol;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.IDataPalette;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.AggregatedCallSite;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.CallGraph;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.ICallGraphProvider;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.ICalledFunction;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStack;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackHostUtils.IHostIdProvider;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackSeries;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackSymbolFactory;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.instrumented.IFlameChartProvider;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.model.IHostModel;
@@ -161,15 +163,13 @@ public class CallGraphAnalysis extends TmfAbstractAnalysisModule implements ICal
             return false;
         }
         IFlameChartProvider callstackModule = fCsProvider;
-        IHostModel model = ModelManager.getModelFor(callstackModule.getHostId());
-
         CallStackSeries callstack = callstackModule.getCallStackSeries();
         if (callstack != null) {
             long time0 = range.getStartTime().toNanos();
             long time1 = range.getEndTime().toNanos();
             long start = Math.min(time0, time1);
             long end = Math.max(time0, time1);
-            iterateOverCallstackSerie(callstack, model, callgraph, start, end, monitor);
+            iterateOverCallstackSerie(callstack, callgraph, start, end, monitor);
             if (monitor.isCanceled()) {
                 return false;
             }
@@ -185,8 +185,6 @@ public class CallGraphAnalysis extends TmfAbstractAnalysisModule implements ICal
      *
      * @param callstackSerie
      *            The series to iterate over
-     * @param model
-     *            The model of the host on which this callstack was running
      * @param callgraph
      *            The callgraph to fill
      * @param start
@@ -197,13 +195,17 @@ public class CallGraphAnalysis extends TmfAbstractAnalysisModule implements ICal
      *            A progress monitor
      */
     @VisibleForTesting
-    protected void iterateOverCallstackSerie(CallStackSeries callstackSerie, IHostModel model, CallGraph callgraph, long start, long end, IProgressMonitor monitor) {
+    protected void iterateOverCallstackSerie(CallStackSeries callstackSerie, CallGraph callgraph, long start, long end, IProgressMonitor monitor) {
         // The root elements are the same as the one from the callstack series
         Collection<ICallStackElement> rootElements = callstackSerie.getRootElements();
         for (ICallStackElement element : rootElements) {
             if (monitor.isCanceled()) {
                 return;
             }
+            IFlameChartProvider callstackModule = fCsProvider;
+            IHostIdProvider hostIdProvider = Objects.requireNonNull(callstackModule.getHostIdResolver().apply(element));
+            IHostModel model = ModelManager.getModelFor(hostIdProvider.apply(start));
+
             iterateOverElement(element, model, callgraph, start, end, monitor);
         }
     }

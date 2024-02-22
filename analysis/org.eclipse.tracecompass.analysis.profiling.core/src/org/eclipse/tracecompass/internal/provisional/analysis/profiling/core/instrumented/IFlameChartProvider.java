@@ -16,10 +16,10 @@ import java.util.Objects;
 
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.analysis.timing.core.segmentstore.ISegmentStoreProvider;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callstack.CallStackSeries;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.ICalledFunction;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackDepth;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackHostUtils;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackSeries;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackHostUtils.IHostIdResolver;
 import org.eclipse.tracecompass.segmentstore.core.ISegment;
 import org.eclipse.tracecompass.tmf.core.analysis.IAnalysisModule;
 
@@ -31,6 +31,7 @@ import com.google.common.collect.Multimap;
  * part of their data.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public interface IFlameChartProvider extends IAnalysisModule, ISegmentStoreProvider {
 
@@ -42,14 +43,11 @@ public interface IFlameChartProvider extends IAnalysisModule, ISegmentStoreProvi
     @Nullable CallStackSeries getCallStackSeries();
 
     /**
-     * Get the ID of the host this callstack provider is for
-     *
-     * TODO: Deprecate me, now using the interfaces from
-     * {@link CallStackHostUtils}
+     * Get the host ID resolver for this callstack provider.
      *
      * @return The ID of the host
      */
-    String getHostId();
+    IHostIdResolver getHostIdResolver();
 
     /**
      * Return whether this analysis is complete

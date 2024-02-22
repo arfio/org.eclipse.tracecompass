@@ -43,14 +43,14 @@ import org.eclipse.tracecompass.datastore.core.serialization.ISafeByteBufferWrit
 import org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented.FlameChartEntryModel;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented.FlameChartEntryModel.EntryType;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.AllGroupDescriptor;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.WeightedTree;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.WeightedTreeGroupBy;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.IDataPalette;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.model.IHostModel;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.ITree;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeGroupDescriptor;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeProvider;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeSet;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.WeightedTree;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.WeightedTreeGroupBy;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeProvider.MetricType;
 import org.eclipse.tracecompass.internal.provisional.statesystem.core.statevalue.CustomStateValue;
 import org.eclipse.tracecompass.segmentstore.core.ISegment;

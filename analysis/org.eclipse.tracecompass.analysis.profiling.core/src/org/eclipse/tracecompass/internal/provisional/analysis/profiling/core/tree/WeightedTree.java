@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 
-package org.eclipse.tracecompass.internal.analysis.profiling.core.tree;
+package org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -19,7 +19,6 @@ import java.util.Map;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.analysis.timing.core.statistics.IStatistics;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeProvider;
 
 /**
  * A Weighted Tree class to describe hierarchical data with a weight. This class
@@ -37,6 +36,7 @@ import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tre
  * @author Geneviève Bastien
  * @param <T>
  *            The type of objects in this tree
+ * @since 2.5
  */
 public class WeightedTree<@NonNull T> implements Comparable<WeightedTree<T>> {
 

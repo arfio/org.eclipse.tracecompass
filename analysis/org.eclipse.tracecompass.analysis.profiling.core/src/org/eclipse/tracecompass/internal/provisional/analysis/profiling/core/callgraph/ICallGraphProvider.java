@@ -14,8 +14,6 @@ package org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.ca
 import java.util.Collection;
 
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callgraph2.AggregatedCallSite;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.WeightedTreeGroupBy;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.FlameDefaultPalette;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackElement;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackSymbol;
@@ -23,12 +21,14 @@ import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.bas
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeGroupDescriptor;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeProvider;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeSet;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.WeightedTreeGroupBy;
 import org.eclipse.tracecompass.tmf.core.timestamp.ITmfTimestamp;
 
 /**
  * Interface that analyses who provide callgraph
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public interface ICallGraphProvider extends IWeightedTreeProvider<ICallStackSymbol, ICallStackElement, AggregatedCallSite> {
 

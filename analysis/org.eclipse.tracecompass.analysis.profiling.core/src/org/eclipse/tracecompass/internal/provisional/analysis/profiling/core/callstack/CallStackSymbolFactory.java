@@ -22,6 +22,7 @@ import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.bas
  * A factory that creates the appropriate symbol for a given element
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public final class CallStackSymbolFactory {
 

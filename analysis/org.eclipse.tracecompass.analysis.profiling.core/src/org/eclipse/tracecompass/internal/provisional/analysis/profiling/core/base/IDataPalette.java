@@ -20,6 +20,7 @@ import org.eclipse.tracecompass.tmf.core.model.OutputElementStyle;
  * the specific style for an object
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public interface IDataPalette {
 

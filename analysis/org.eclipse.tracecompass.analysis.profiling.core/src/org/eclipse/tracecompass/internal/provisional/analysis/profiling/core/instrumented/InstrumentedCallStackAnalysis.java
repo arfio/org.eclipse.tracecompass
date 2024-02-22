@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 
-package org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented;
+package org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.instrumented;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,17 +24,17 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.analysis.profiling.core.callstack.CallStackStateProvider;
 import org.eclipse.tracecompass.analysis.timing.core.segmentstore.IAnalysisProgressListener;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callgraph2.AggregatedCallSite;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.callgraph2.CallGraphAnalysis;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callstack.CallStackSeries;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callstack.CallStackSeries.IThreadIdResolver;
+import org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented.FunctionTidAspect;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.IDataPalette;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.AggregatedCallSite;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.CallGraph;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.ICallGraphProvider;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackHostUtils;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackSeries;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackHostUtils.IHostIdResolver;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackHostUtils.TraceHostIdResolver;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.instrumented.IFlameChartProvider;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.instrumented.SymbolAspect;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackSeries.IThreadIdResolver;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeGroupDescriptor;
 import org.eclipse.tracecompass.segmentstore.core.ISegment;
 import org.eclipse.tracecompass.segmentstore.core.ISegmentStore;
@@ -60,6 +60,7 @@ import com.google.common.collect.ImmutableList;
  *
  * @author Matthew Khouzam
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public abstract class InstrumentedCallStackAnalysis extends TmfStateSystemAnalysisModule implements IFlameChartProvider, ICallGraphProvider {
 
@@ -271,12 +272,8 @@ public abstract class InstrumentedCallStackAnalysis extends TmfStateSystemAnalys
     }
 
     @Override
-    public @NonNull String getHostId() {
-        ITmfTrace trace = getTrace();
-        if (trace == null) {
-            return ""; //$NON-NLS-1$
-        }
-        return trace.getHostId();
+    public IHostIdResolver getHostIdResolver() {
+        return new CallStackHostUtils.TraceHostIdResolver(getTrace());
     }
 
     /**

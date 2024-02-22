@@ -9,22 +9,20 @@
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 
-package org.eclipse.tracecompass.internal.analysis.profiling.core.tree;
+package org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree;
 
 import java.util.Collection;
 import java.util.Objects;
 
 import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.ITree;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeGroupDescriptor;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeProvider;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeSet;
+import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.AllGroupDescriptor;
 
 /**
  * A class containing helper methods to group aggregated callgraph data by the
  * different available groups
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public final class WeightedTreeGroupBy {
 

@@ -17,8 +17,8 @@ import java.util.Map;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callgraph2.AggregatedCallSite;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ProcessStatusInterval;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.AggregatedCallSite;
 import org.eclipse.tracecompass.tmf.core.analysis.IAnalysisModule;
 
 /**
@@ -35,6 +35,7 @@ import org.eclipse.tracecompass.tmf.core.analysis.IAnalysisModule;
  * make use of the various analyses of the traces that compose this model.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public interface IHostModel {
 

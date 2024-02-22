@@ -20,6 +20,7 @@ import java.util.Collection;
  *
  * NOTE to developers: this interface is used with the composite host model but
  * won't be necessary anymore once the analyses populate the model directly.
+ * @since 2.5
  */
 public interface ICpuTimeProvider {
 

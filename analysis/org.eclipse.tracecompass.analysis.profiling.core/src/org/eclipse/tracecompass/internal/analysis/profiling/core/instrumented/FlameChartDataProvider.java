@@ -37,7 +37,6 @@ import org.eclipse.tracecompass.analysis.os.linux.core.model.HostThread;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLog;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.FlowScopeLog;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.FlowScopeLogBuilder;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callstack.CallStackSeries;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented.FlameChartEntryModel.EntryType;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ModelManager;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ProcessStatusInterval;
@@ -47,6 +46,8 @@ import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.bas
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.ICalledFunction;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStack;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackDepth;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callstack.CallStackSeries;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.instrumented.EdgeStateValue;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.instrumented.IFlameChartProvider;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.model.IHostModel;
 import org.eclipse.tracecompass.segmentstore.core.ISegment;

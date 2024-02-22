@@ -22,9 +22,10 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.analysis.os.linux.core.model.ProcessStatus;
 import org.eclipse.tracecompass.analysis.timing.core.statistics.IStatistics;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ProcessStatusInterval;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.WeightedTree;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.base.ICallStackSymbol;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.AggregatedCallSite;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.model.IHostModel;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.WeightedTree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

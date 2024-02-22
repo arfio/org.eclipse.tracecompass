@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.WeightedTree;
 
 /**
  * A structure that keeps elements and their weighted trees together for a given
@@ -35,6 +34,7 @@ import org.eclipse.tracecompass.internal.analysis.profiling.core.tree.WeightedTr
  *            trees will be grouped in a hierarchical style
  * @param <T>
  *            The type of the tree provided
+ * @since 2.5
  */
 public interface IWeightedTreeSet<@NonNull N, E, @NonNull T extends WeightedTree<N>> {
 

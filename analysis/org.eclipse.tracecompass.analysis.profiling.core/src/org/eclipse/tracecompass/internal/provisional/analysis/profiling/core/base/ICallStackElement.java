@@ -27,6 +27,7 @@ import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tre
  * will be available only at the leaf elements.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public interface ICallStackElement extends ITree {
 

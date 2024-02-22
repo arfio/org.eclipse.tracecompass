@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 
-package org.eclipse.tracecompass.internal.analysis.profiling.core.tree;
+package org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -17,8 +17,6 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.ITree;
-import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.tree.IWeightedTreeSet;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -33,6 +31,7 @@ import com.google.common.collect.Multimap;
  *            The type of elements used to group the trees. If this type extends
  *            {@link ITree}, then the elements and their associated weighted
  *            trees will be grouped in a hierarchical style
+ * @since 2.5
  */
 public class WeightedTreeSet<@NonNull N, E> implements IWeightedTreeSet<N, E, WeightedTree<N>> {
 

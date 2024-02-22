@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 
-package org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented;
+package org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.instrumented;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
@@ -29,6 +29,7 @@ import org.eclipse.tracecompass.statesystem.core.statevalue.ITmfStateValue;
  * encapsulating interval.
  *
  * @author Loic Prieur-Drevon
+ * @since 2.5
  */
 public class EdgeStateValue extends CustomStateValue {
 

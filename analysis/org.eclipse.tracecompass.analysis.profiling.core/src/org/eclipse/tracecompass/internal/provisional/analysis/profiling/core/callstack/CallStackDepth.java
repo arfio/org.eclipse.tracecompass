@@ -20,6 +20,7 @@ import com.google.common.base.Objects;
  * system accesses.
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public class CallStackDepth {
 

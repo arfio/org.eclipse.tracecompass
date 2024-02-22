@@ -14,6 +14,7 @@ package org.eclipse.tracecompass.internal.analysis.profiling.core.callgraph2;
 import org.eclipse.tracecompass.analysis.os.linux.core.model.ProcessStatus;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.base.StringSymbol;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ProcessStatusInterval;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.AggregatedCallSite;
 
 /**
  * Class to calculate statistics for an aggregated function.

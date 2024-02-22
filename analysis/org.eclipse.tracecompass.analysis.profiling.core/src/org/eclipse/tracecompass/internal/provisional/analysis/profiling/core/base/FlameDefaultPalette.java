@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.tracecompass.internal.analysis.profiling.core.callgraph2.AggregatedCallSite;
+import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.AggregatedCallSite;
 import org.eclipse.tracecompass.internal.provisional.analysis.profiling.core.callgraph.ICalledFunction;
 import org.eclipse.tracecompass.tmf.core.dataprovider.X11ColorUtils;
 import org.eclipse.tracecompass.tmf.core.model.OutputElementStyle;
@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
  * Class to manage the colors of the flame chart and flame graph views
  *
  * @author Geneviève Bastien
+ * @since 2.5
  */
 public final class FlameDefaultPalette implements IDataPalette {
 
