@@ -81,7 +81,7 @@ public abstract class InstrumentedCallStackAnalysis extends TmfStateSystemAnalys
      * Whether the callgraph execution will be triggered automatically after
      * build.
      */
-    private boolean fAutomaticCallgraph = true;
+    private boolean fAutomaticCallgraph = false;
 
     /**
      * Abstract constructor (should only be called via the sub-classes'
