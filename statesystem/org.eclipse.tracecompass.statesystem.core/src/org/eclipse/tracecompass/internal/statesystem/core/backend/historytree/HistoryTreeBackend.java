@@ -35,6 +35,7 @@ import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.FlowScopeLo
 import org.eclipse.tracecompass.internal.provisional.datastore.core.condition.IntegerRangeCondition;
 import org.eclipse.tracecompass.internal.provisional.datastore.core.condition.TimeRangeCondition;
 import org.eclipse.tracecompass.internal.statesystem.core.Activator;
+import org.eclipse.tracecompass.internal.statesystem.core.backend.historytree.classic.HistoryTreeClassic;
 import org.eclipse.tracecompass.statesystem.core.backend.IStateHistoryBackend;
 import org.eclipse.tracecompass.statesystem.core.exceptions.StateSystemDisposedException;
 import org.eclipse.tracecompass.statesystem.core.exceptions.TimeRangeException;
@@ -236,6 +237,7 @@ public class HistoryTreeBackend implements IStateHistoryBackend {
     @Override
     public void finishedBuilding(long endTime) {
         getSHT().closeTree(endTime);
+        ((HistoryTreeClassic) getSHT()).logTreeStatistics(LOGGER);
         fFinishedBuilding = true;
     }
 
