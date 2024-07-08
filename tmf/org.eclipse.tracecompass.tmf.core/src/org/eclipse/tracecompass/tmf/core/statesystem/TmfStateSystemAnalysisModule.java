@@ -35,6 +35,7 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.common.core.NonNullUtils;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLog;
+import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.ScopeLog;
 import org.eclipse.tracecompass.internal.tmf.core.Activator;
 import org.eclipse.tracecompass.internal.tmf.core.statesystem.backends.partial.PartialHistoryBackend;
@@ -455,18 +456,21 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         /* 3 */
         ITmfTrace trace = provider.getTrace();
         long endTime = trace.readEnd().getValue();
-        long minimumNSamples = 10000;
+        long minimumNSamples = 100000;
         long nSamples = minimumNSamples;
         if (trace instanceof ITmfTraceKnownSize) {
-            long averageNumberOfEvents = 10000;
-            nSamples = ((ITmfTraceKnownSize) trace).size() / averageNumberOfEvents;
+            nSamples = ((ITmfTraceKnownSize) trace).size() * 100L;
             nSamples = Long.max(nSamples, minimumNSamples);
+            TraceCompassLogUtils.traceInstant(LOGGER, Level.FINEST, "TmfStateSystemAnalysisModule#createPartialHistory", //$NON-NLS-1$
+                    "size", ((ITmfTraceKnownSize) trace).size()); //$NON-NLS-1$
         }
         long granularity = (endTime - trace.getStartTime().getValue()) / nSamples;
         if (granularity <= 0) {
             // Default value for granularity if trace is small
             granularity = 1000;
         }
+        TraceCompassLogUtils.traceInstant(LOGGER, Level.FINE, "TmfStateSystemAnalysisModule#createPartialHistory", //$NON-NLS-1$
+                "ssid", id + ".partial", "granularity", granularity, "nSamples", nSamples, "trace duration", endTime - trace.getStartTime().getValue()); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
         IStateHistoryBackend partialBackend = new PartialHistoryBackend(id + ".partial", partialProvider, pss, realBackend, granularity, backend); //$NON-NLS-1$
 
         /* 4 */
