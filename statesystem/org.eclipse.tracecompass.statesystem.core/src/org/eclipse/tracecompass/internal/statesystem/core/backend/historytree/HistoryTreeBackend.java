@@ -236,6 +236,7 @@ public class HistoryTreeBackend implements IStateHistoryBackend {
     @Override
     public void finishedBuilding(long endTime) {
         getSHT().closeTree(endTime);
+        LOGGER.log(Level.FINEST, () -> getSHT().toString());
         fFinishedBuilding = true;
     }
 

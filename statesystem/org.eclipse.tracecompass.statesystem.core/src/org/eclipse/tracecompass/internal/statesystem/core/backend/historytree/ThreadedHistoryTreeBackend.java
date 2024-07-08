@@ -172,6 +172,7 @@ public final class ThreadedHistoryTreeBackend extends HistoryTreeBackend
 
         stopRunningThread(endTime);
         setFinishedBuilding(true);
+        LOGGER.log(Level.FINEST, () -> getSHT().toString());
         return;
     }
 
