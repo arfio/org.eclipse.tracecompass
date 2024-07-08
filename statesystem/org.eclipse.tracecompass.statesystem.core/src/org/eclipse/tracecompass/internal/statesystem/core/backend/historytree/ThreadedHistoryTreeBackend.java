@@ -29,6 +29,7 @@ import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils;
 import org.eclipse.tracecompass.internal.provisional.datastore.core.condition.IntegerRangeCondition;
 import org.eclipse.tracecompass.internal.provisional.datastore.core.condition.TimeRangeCondition;
 import org.eclipse.tracecompass.internal.statesystem.core.Activator;
+import org.eclipse.tracecompass.internal.statesystem.core.backend.historytree.classic.HistoryTreeClassic;
 import org.eclipse.tracecompass.statesystem.core.exceptions.StateSystemDisposedException;
 import org.eclipse.tracecompass.statesystem.core.exceptions.TimeRangeException;
 import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
@@ -172,6 +173,8 @@ public final class ThreadedHistoryTreeBackend extends HistoryTreeBackend
 
         stopRunningThread(endTime);
         setFinishedBuilding(true);
+
+        ((HistoryTreeClassic) getSHT()).logTreeStatistics(LOGGER);
         return;
     }
 

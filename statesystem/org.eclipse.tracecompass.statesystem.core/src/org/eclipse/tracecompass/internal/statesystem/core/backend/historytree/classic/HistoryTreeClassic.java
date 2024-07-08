@@ -27,8 +27,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils;
 import org.eclipse.tracecompass.internal.statesystem.core.backend.historytree.HTConfig;
 import org.eclipse.tracecompass.internal.statesystem.core.backend.historytree.HTInterval;
 import org.eclipse.tracecompass.internal.statesystem.core.backend.historytree.HTNode;
@@ -659,6 +664,46 @@ public class HistoryTreeClassic implements IHistoryTree {
     // Test/debugging methods
     // ------------------------------------------------------------------------
 
+    private Double getAverageLeafDepth() {
+        HTNode root = getRootNode();
+        try {
+            Pair<Long, Long> pair = calculateAverageLeafDepth(root, 0L);
+            return pair.getLeft() / (double) pair.getRight();
+        } catch(ClosedChannelException e) {
+            return 0.0;
+        }
+    }
+
+    private Pair<Long, Long> calculateAverageLeafDepth(HTNode node, Long depth) throws ClosedChannelException {
+        Long depthLeafSum = 0L;
+        Long nLeafs = 0L;
+        if (node != null && node.getNodeType() == HTNode.NodeType.CORE) {
+            ParentNode coreNode = ((ParentNode) node);
+            for (int i = 0; i < coreNode.getNbChildren(); i++) {
+                Pair<Long, Long> pair = calculateAverageLeafDepth(fTreeIO.readNode(coreNode.getChild(i)), depth + 1);
+                depthLeafSum += pair.getLeft();
+                nLeafs += pair.getRight();
+            }
+        } else if (node != null && node.getNodeType() == HTNode.NodeType.LEAF) {
+            depthLeafSum = depth;
+            nLeafs = 1L;
+        }
+        return new ImmutablePair<>(depthLeafSum, nLeafs);
+    }
+
+    /**
+     * Utility method to show tree informations for profiling purposes.
+     * @param logger the logger to use
+     */
+    public void logTreeStatistics(Logger logger) {
+        if (logger.isLoggable(Level.FINEST)) {
+            TraceCompassLogUtils.traceInstant(logger, Level.FINEST, "ThreadedHistoryTreeBackend#finishedBuilding", //$NON-NLS-1$
+                    "fileName", fConfig.getStateFile().getName(), "blocksize", fConfig.getBlockSize(), "maxChildrenPerNode", fConfig.getMaxChildren(), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                    "treeDepth", fLatestBranch.size(), "treeFileSize", getFileSize(), "rootSeqNum", fLatestBranch.get(0).getSequenceNumber(), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                    "latestLeafSeqNum", fLatestBranch.get(fLatestBranch.size() - 1).getSequenceNumber(), "averageLeafDepth", getAverageLeafDepth()); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+    }
+
     /* Only used for debugging, shouldn't be externalized */
     @Override
     public String toString() {
@@ -670,7 +715,8 @@ public class HistoryTreeClassic implements IHistoryTree {
                 + "Root node has sequence number: " //$NON-NLS-1$
                 + fLatestBranch.get(0).getSequenceNumber() + "\n" //$NON-NLS-1$
                 + "'Latest leaf' has sequence number: " //$NON-NLS-1$
-                + fLatestBranch.get(fLatestBranch.size() - 1).getSequenceNumber();
+                + fLatestBranch.get(fLatestBranch.size() - 1).getSequenceNumber() + "\n" //$NON-NLS-1$
+                + "AverageLeafDepth = " + getAverageLeafDepth(); //$NON-NLS-1$
     }
 
 }
