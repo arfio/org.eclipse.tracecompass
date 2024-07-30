@@ -16,8 +16,12 @@
 package org.eclipse.tracecompass.tmf.core.request;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.tracecompass.common.core.log.TraceCompassLog;
+import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils;
 import org.eclipse.tracecompass.internal.tmf.core.TmfCoreTracer;
 import org.eclipse.tracecompass.tmf.core.event.ITmfEvent;
 import org.eclipse.tracecompass.tmf.core.filter.ITmfFilter;
@@ -73,6 +77,8 @@ public abstract class TmfEventRequest implements ITmfEventRequest {
     // ------------------------------------------------------------------------
 
     private static int fRequestNumber = 0;
+
+    private static final Logger LOGGER = TraceCompassLog.getLogger(TmfEventRequest.class);
 
     // ------------------------------------------------------------------------
     // Attributes
@@ -356,6 +362,7 @@ public abstract class TmfEventRequest implements ITmfEventRequest {
         } else {
             handleSuccess();
         }
+        TraceCompassLogUtils.traceInstant(LOGGER, Level.FINER, "TmfEventRequest:handleCompleted", "eventsRead", fNbRead); //$NON-NLS-1$ //$NON-NLS-2$
         if (TmfCoreTracer.isRequestTraced()) {
             TmfCoreTracer.traceRequest(getRequestId(), "COMPLETED (" + fNbRead + " events read)"); //$NON-NLS-1$ //$NON-NLS-2$
         }
