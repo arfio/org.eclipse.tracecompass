@@ -57,38 +57,41 @@ class HistoryTreeBackendIterator implements Iterator<@NonNull ITmfStateInterval>
 
     @Override
     public boolean hasNext() {
-        while (!intervalQueue.hasNext() && !fSeqNumberQueue.isEmpty()) {
-            try {
-                HTNode currentNode = fSht.readNode(fSeqNumberQueue);
-                /*
-                 * Compute reduced conditions here to reduce complexity in
-                 * queuing operations. Do not reduce for the root node.
-                 */
-                TimeRangeCondition subTimes = currentNode.getParentSequenceNumber() == -1 ? fTimes :
-                    fTimes.subCondition(currentNode.getNodeStart(), currentNode.getNodeEnd());
-                /*
-                 * During the SHT construction, the bounds of the children are
-                 * not final, so we may have queued some nodes which don't
-                 * overlap the query.
-                 */
-                if (fQuarks.intersects(currentNode.getMinQuark(), currentNode.getMaxQuark()) && subTimes != null) {
-                    if (currentNode.getNodeType() == HTNode.NodeType.CORE) {
-                        // Queue the relevant children nodes for BFS.
-                        ((ParentNode) currentNode).queueNextChildren2D(fQuarks, subTimes, fSeqNumberQueue, fReverse);
+        try (FlowScopeLog next = new FlowScopeLogBuilder(LOGGER, Level.FINER,
+                "HistoryTreeBackendIterator:hasNext").setParentScope(fParentLog).build()) { //$NON-NLS-1$
+            while (!intervalQueue.hasNext() && !fSeqNumberQueue.isEmpty()) {
+                try {
+                    HTNode currentNode = fSht.readNode(fSeqNumberQueue);
+                    /*
+                    * Compute reduced conditions here to reduce complexity in
+                    * queuing operations. Do not reduce for the root node.
+                    */
+                    TimeRangeCondition subTimes = currentNode.getParentSequenceNumber() == -1 ? fTimes :
+                        fTimes.subCondition(currentNode.getNodeStart(), currentNode.getNodeEnd());
+                    /*
+                    * During the SHT construction, the bounds of the children are
+                    * not final, so we may have queued some nodes which don't
+                    * overlap the query.
+                    */
+                    if (fQuarks.intersects(currentNode.getMinQuark(), currentNode.getMaxQuark()) && subTimes != null) {
+                        if (currentNode.getNodeType() == HTNode.NodeType.CORE) {
+                            // Queue the relevant children nodes for BFS.
+                            ((ParentNode) currentNode).queueNextChildren2D(fQuarks, subTimes, fSeqNumberQueue, fReverse);
+                        }
+                        intervalQueue = currentNode.iterable2D(fQuarks, subTimes).iterator();
                     }
-                    intervalQueue = currentNode.iterable2D(fQuarks, subTimes).iterator();
-                }
-            } catch (ClosedChannelException e) {
-                try (FlowScopeLog closedChannelLog = new FlowScopeLogBuilder(LOGGER, Level.FINER,
-                        "HistoryTreeBackendIterator:query2D:channelClosed").setParentScope(fParentLog).build()) { //$NON-NLS-1$
-                    return false;
+                } catch (ClosedChannelException e) {
+                    try (FlowScopeLog closedChannelLog = new FlowScopeLogBuilder(LOGGER, Level.FINER,
+                            "HistoryTreeBackendIterator:query2D:channelClosed").setParentScope(fParentLog).build()) { //$NON-NLS-1$
+                        return false;
+                    }
                 }
             }
-        }
-        boolean hasNext = intervalQueue.hasNext();
-        if (!hasNext) {
-            try (FlowScopeLog noNext = new FlowScopeLogBuilder(LOGGER, Level.FINER,
-                    "HistoryTreeBackendIterator:query2D:iteratorEnd").setParentScope(fParentLog).build()) { //$NON-NLS-1$
+            boolean hasNext = intervalQueue.hasNext();
+            if (!hasNext) {
+                try (FlowScopeLog noNext = new FlowScopeLogBuilder(LOGGER, Level.FINER,
+                        "HistoryTreeBackendIterator:query2D:iteratorEnd").setParentScope(fParentLog).build()) { //$NON-NLS-1$
+                }
             }
         }
         return intervalQueue.hasNext();
