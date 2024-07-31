@@ -35,7 +35,7 @@ public class ArrayTimeRangeCondition implements TimeRangeCondition {
      */
     public ArrayTimeRangeCondition(Collection<@NonNull Long> times) {
         if (times.isEmpty()) {
-            throw new IllegalArgumentException("QuarkArrayRangeCondition requires a non empty collection"); //$NON-NLS-1$
+            throw new IllegalArgumentException("ArrayTimeRangeCondition requires a non empty collection"); //$NON-NLS-1$
         }
         fTimeArray = new long[times.size()];
         int i = 0;

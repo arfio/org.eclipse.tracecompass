@@ -13,6 +13,7 @@
 
 package org.eclipse.tracecompass.internal.tmf.core.statesystem.backends.partial;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
@@ -22,6 +23,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.internal.statesystem.core.AttributeTree;
 import org.eclipse.tracecompass.internal.statesystem.core.StateSystem;
+import org.eclipse.tracecompass.internal.tmf.core.Activator;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystem;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystemBuilder;
 import org.eclipse.tracecompass.statesystem.core.backend.IPartialStateHistoryBackend;
@@ -40,7 +42,7 @@ import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
 @SuppressWarnings("restriction") /* We're using AttributeTree directly */
 public class PartialStateSystem extends StateSystem {
 
-    private static final String ERR_MSG = "Partial state system should not modify the attribute tree!"; //$NON-NLS-1$
+    private static final String NOT_FOUND_TREE_ELEMENT_ERR_MSG = "Partial state system did not contain the following element: "; //$NON-NLS-1$
 
     /**
      * Checkpoint attribute name
@@ -152,7 +154,7 @@ public class PartialStateSystem extends StateSystem {
      */
     @Override
     public synchronized void addEmptyAttribute() {
-        throw new RuntimeException(ERR_MSG);
+        // The tree should not be modified since the real tree was already built previously.
     }
 
     @Override
@@ -164,8 +166,12 @@ public class PartialStateSystem extends StateSystem {
             }
             return Objects.requireNonNull(fRealStateSystem).getQuarkAbsolute(attribute);
         } catch (AttributeNotFoundException e) {
-            throw new RuntimeException(ERR_MSG);
+            if (attribute != null) {
+                Activator.logError(NOT_FOUND_TREE_ELEMENT_ERR_MSG + Arrays.toString(attribute));
+            }
+            Activator.logError("Attribute string is null"); //$NON-NLS-1$
         }
+        return ITmfStateSystem.INVALID_ATTRIBUTE;
     }
 
     @Override
@@ -174,8 +180,13 @@ public class PartialStateSystem extends StateSystem {
         try {
             return Objects.requireNonNull(fRealStateSystem).getQuarkRelative(startingNodeQuark, subPath);
         } catch (AttributeNotFoundException e) {
-            throw new RuntimeException(ERR_MSG);
+            if (subPath != null) {
+                Activator.logError(NOT_FOUND_TREE_ELEMENT_ERR_MSG + "quark: " + Integer.toString(startingNodeQuark) //$NON-NLS-1$
+                    + Arrays.toString(subPath));
+            }
+            Activator.logError("quark: " + Integer.toString(startingNodeQuark)+ "and subpath string is null"); //$NON-NLS-1$ //$NON-NLS-2$
         }
+        return ITmfStateSystem.INVALID_ATTRIBUTE;
     }
 
     private void waitUntilReady() {

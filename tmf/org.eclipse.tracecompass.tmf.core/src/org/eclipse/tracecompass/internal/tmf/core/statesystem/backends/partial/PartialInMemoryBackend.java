@@ -13,6 +13,7 @@ package org.eclipse.tracecompass.internal.tmf.core.statesystem.backends.partial;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -56,7 +57,7 @@ public class PartialInMemoryBackend implements IPartialStateHistoryBackend {
     private final long fStartTime;
     public @Nullable IntegerRangeCondition fRangeCondition;
     public @Nullable TimeRangeCondition fTimeCondition;
-    public static boolean fIs2DQuery = false;
+    public static boolean fIsFullQuery = true;
     private volatile long fLatestTime;
 
     /**
@@ -112,11 +113,9 @@ public class PartialInMemoryBackend implements IPartialStateHistoryBackend {
          * conditions in case of a query 2D, or add all the intervals if the
          * query is from a different type like queryFullState()
          */
-        synchronized (fCurrentIntervals) {
-            if ((fRangeCondition != null && fRangeCondition.test(interval.getAttribute()) && fTimeCondition != null &&
-                   fTimeCondition.intersects(interval.getStartTime(), interval.getEndTime())) || !fIs2DQuery) {
-                fCurrentIntervals.add(interval);
-            }
+        if (fIsFullQuery || (fRangeCondition != null && fRangeCondition.test(interval.getAttribute()) && fTimeCondition != null &&
+                fTimeCondition.intersects(interval.getStartTime(), interval.getEndTime()))) {
+            fCurrentIntervals.add(interval);
         }
 
         /* Update the "latest seen time" */
@@ -136,16 +135,14 @@ public class PartialInMemoryBackend implements IPartialStateHistoryBackend {
          * The intervals are sorted by end time, so we can binary search to get
          * the first possible interval, then only compare their start times.
          */
-        synchronized (fCurrentIntervals) {
-            Iterator<ITmfStateInterval> iter = searchforEndTime(fCurrentIntervals, 0, t).iterator();
-            for (int modCount = 0; iter.hasNext() && modCount < currentStateInfo.size();) {
-                ITmfStateInterval entry = iter.next();
-                final long entryStartTime = entry.getStartTime();
-                if (entryStartTime <= t) {
-                    /* Add this interval to the returned values */
-                    currentStateInfo.set(entry.getAttribute(), entry);
-                    modCount++;
-                }
+        Iterator<ITmfStateInterval> iter = searchforEndTime(fCurrentIntervals, 0, t).iterator();
+        for (int modCount = 0; iter.hasNext() && modCount < currentStateInfo.size();) {
+            ITmfStateInterval entry = iter.next();
+            final long entryStartTime = entry.getStartTime();
+            if (entryStartTime <= t) {
+                /* Add this interval to the returned values */
+                currentStateInfo.set(entry.getAttribute(), entry);
+                modCount++;
             }
         }
     }
@@ -161,16 +158,14 @@ public class PartialInMemoryBackend implements IPartialStateHistoryBackend {
          * The intervals are sorted by end time, so we can binary search to get
          * the first possible interval, then only compare their start times.
          */
-        synchronized (fCurrentIntervals) {
-            Iterable<ITmfStateInterval> iter = searchforEndTime(fCurrentIntervals, attributeQuark, t);
-            for (ITmfStateInterval entry : iter) {
-                final boolean attributeMatches = (entry.getAttribute() == attributeQuark);
-                final long entryStartTime = entry.getStartTime();
-                if (attributeMatches) {
-                    if (entryStartTime <= t) {
-                        /* This is the droid we are looking for */
-                        return entry;
-                    }
+        Iterable<ITmfStateInterval> iter = searchforEndTime(fCurrentIntervals, attributeQuark, t);
+        for (ITmfStateInterval entry : iter) {
+            final boolean attributeMatches = (entry.getAttribute() == attributeQuark);
+            final long entryStartTime = entry.getStartTime();
+            if (attributeMatches) {
+                if (entryStartTime <= t) {
+                    /* This is the droid we are looking for */
+                    return entry;
                 }
             }
         }
@@ -216,7 +211,7 @@ public class PartialInMemoryBackend implements IPartialStateHistoryBackend {
 
     private static Iterable<ITmfStateInterval> searchforEndTime(NavigableSet<@NonNull ITmfStateInterval> tree, int quark, long time) {
         ITmfStateInterval dummyInterval = new TmfStateInterval(-1, time, quark, (Object) null);
-        return tree.tailSet(dummyInterval);
+        return new ArrayList<>(tree.tailSet(dummyInterval));
     }
 
     @Override
@@ -229,11 +224,9 @@ public class PartialInMemoryBackend implements IPartialStateHistoryBackend {
                 "ssid", getSSID(), //$NON-NLS-1$
                 "quarks", quarks, //$NON-NLS-1$
                 "times", times)) { //$NON-NLS-1$
-            synchronized (fCurrentIntervals) {
-                return Iterables.filter(searchforEndTime(fCurrentIntervals, quarks.min(), times.min()),
-                        interval -> quarks.test(interval.getAttribute())
-                                && times.intersects(interval.getStartTime(), interval.getEndTime()));
-            }
+            return Iterables.filter(searchforEndTime(fCurrentIntervals, quarks.min(), times.min()),
+                    interval -> quarks.test(interval.getAttribute())
+                            && times.intersects(interval.getStartTime(), interval.getEndTime()));
         }
     }
 
@@ -248,8 +241,17 @@ public class PartialInMemoryBackend implements IPartialStateHistoryBackend {
     }
 
     @Override
-    public void updateQueryType(boolean type) {
-        fIs2DQuery = type;
+    public void setFullQuery() {
+        fIsFullQuery = true;
     }
 
+    @Override
+    public void set2DQuery() {
+        fIsFullQuery = false;
+    }
+
+    @Override
+    public void clear() {
+        fCurrentIntervals.clear();
+    }
 }

@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -90,21 +89,8 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
 
     /** Reference to the "real" state history that is used for storage */
     private final IStateHistoryBackend fInnerHistory;
-
-    /** Checkpoints set, <Timestamp> */
-    private final TreeSet<Long> fCheckpoints = new TreeSet<>();
-
     private long fLatestTime;
-    private int fQuarkCounter = 0;
-
     private final IPartialStateHistoryBackend fBackend;
-
-    /** Has at least one state been inserted when it is "true" */
-    private volatile boolean fInitialized = false;
-
-    /** The quark of a checkpoint attribute */
-    private int fCheckpointQuark;
-
     private long fGranularity;
 
     /**
@@ -166,59 +152,39 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
         return fLatestTime;
     }
 
+    private boolean isIntersectingCheckpoint(long start, long end) {
+        return getCheckpointBefore(end) > start;
+    }
+
+    private long getCheckpointBefore(long t) {
+        long start = fPartialInput.getStartTime();
+        return start + fGranularity * Math.floorDiv(t - start, fGranularity);
+    }
+
+    private long getCheckpointAfter(long t) {
+        return getCheckpointBefore(t) + fGranularity;
+    }
+
+
     @Override
     public void insertPastState(long stateStartTime, long stateEndTime,
             int quark, @Nullable Object value) throws TimeRangeException {
-        if (!fInitialized) {
-            fCheckpointQuark = fPartialSS.getQuarkAbsoluteAndAdd(PartialStateSystem.CHECKPOINT_ATTRIBUTE);
-            fCheckpoints.add(fPartialInput.getStartTime());
-            fInitialized = true;
-        }
-        /* Ignore checkpoint modification */
-        if (quark == fCheckpointQuark) {
-            return;
-        }
-        if (quark > fQuarkCounter) {
-            fQuarkCounter++;
-        }
         /* Update the latest time */
         if (stateEndTime > fLatestTime) {
             fLatestTime = stateEndTime;
         }
-
-        addCheckpointInnerBackendTimeBased();
-
         /*
          * Check if the interval intersects the previous checkpoint. If so,
          * insert it in the real history back-end.
-         *
-         * FIXME since intervals are inserted in order of rank, we could avoid
-         * doing a map lookup every time here (just compare with the known
-         * previous one).
          */
-        if (stateStartTime <= fCheckpoints.floor(stateEndTime)) {
+        if (isIntersectingCheckpoint(stateStartTime, stateEndTime)) {
             fInnerHistory.insertPastState(stateStartTime, stateEndTime, quark, value);
-        }
-    }
-
-    private void addCheckpointInnerBackendTimeBased() {
-        while (fLatestTime >= fCheckpoints.last() + fGranularity) {
-            long lastCheckpointTime = fCheckpoints.last();
-            long nextCheckpointTime = lastCheckpointTime + fGranularity;
-            fCheckpoints.add(nextCheckpointTime);
-            fInnerHistory.insertPastState(lastCheckpointTime, nextCheckpointTime - 1, fCheckpointQuark, fCheckpoints.size() - 1);
         }
     }
 
     @Override
     public void finishedBuilding(long endTime) throws TimeRangeException {
-        if (endTime > fCheckpoints.last()) {
-            fInnerHistory.insertPastState(fCheckpoints.last(), endTime, fCheckpointQuark, fCheckpoints.size());
-            fCheckpoints.add(endTime);
-            fInnerHistory.finishedBuilding(endTime);
-        } else {
-            fInnerHistory.finishedBuilding(endTime);
-        }
+        fInnerHistory.finishedBuilding(endTime);
     }
 
     @Override
@@ -254,6 +220,7 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
         try (TraceCompassLogUtils.ScopeLog log = new TraceCompassLogUtils.ScopeLog(LOGGER, Level.FINEST, "PartialHistoryBackend:doQuery", //$NON-NLS-1$
                 "time", t)) { //$NON-NLS-1$
             checkValidTime(t);
+
             ITmfStateSystem upstreamSS = fPartialSS.getUpstreamSS();
             if (upstreamSS == null) {
                 throw new StateSystemDisposedException();
@@ -261,7 +228,7 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
             upstreamSS.waitUntilBuilt();
 
             /* Reload the previous checkpoint */
-            long checkpointBefore = Objects.requireNonNull(fCheckpoints.floor(t));
+            long checkpointBefore = getCheckpointBefore(t);
             /*
              * Add state if the number of elements is less than the number of
              * existing quarks
@@ -270,16 +237,6 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
                 currentStateInfo.add(null);
             }
             fInnerHistory.doQuery(currentStateInfo, checkpointBefore);
-
-            /*
-             * If the request is at the end, some intervals might not have been
-             * recorded, since the checkpoint is created after all the intervals
-             * are inserted.
-             */
-            if (currentStateInfo.contains(null)) {
-                checkpointBefore = Objects.requireNonNull(fCheckpoints.floor(t - 1));
-                fInnerHistory.doQuery(currentStateInfo, checkpointBefore);
-            }
 
             /*
              * If all intervals cover the timestamp t requested then we do not
@@ -300,7 +257,7 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
              * Load the next checkpoint if we are not at the end as states are
              * not recorded at the last checkpoint
              */
-            long checkpointAfter = Objects.requireNonNull(fCheckpoints.ceiling(t));
+            long checkpointAfter = getCheckpointAfter(t);
             if (t < fLatestTime) {
                 List<@Nullable ITmfStateInterval> nextCheckpointStateInfo = prepareIntervalList(currentStateInfo.size());
                 fInnerHistory.doQuery(nextCheckpointStateInfo, checkpointAfter);
@@ -378,6 +335,7 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
                     }
                 }
             } finally {
+                fBackend.clear();
                 fPartialSS.releaseQueryLock();
             }
         }
@@ -393,6 +351,7 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
         try (TraceCompassLogUtils.ScopeLog log = new TraceCompassLogUtils.ScopeLog(LOGGER, Level.FINEST, "PartialHistoryBackend:doSingularQuery", //$NON-NLS-1$
                 "quark", attributeQuark, //$NON-NLS-1$
                 "time", t)) { //$NON-NLS-1$
+
             ITmfStateSystem upstreamSS = fPartialSS.getUpstreamSS();
             if (upstreamSS == null) {
                 throw new StateSystemDisposedException();
@@ -400,12 +359,12 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
             upstreamSS.waitUntilBuilt();
 
             /* Reload the previous checkpoint */
-            long checkpointTime = Objects.requireNonNull(fCheckpoints.floor(t));
+            long checkpointBefore = getCheckpointBefore(t);
             int nbAttributes = getNbAttributes();
             List<@Nullable ITmfStateInterval> intervalsList = prepareIntervalList(nbAttributes);
 
             /* Checking if the interval was stored in the real backend */
-            fInnerHistory.doQuery(intervalsList, checkpointTime);
+            fInnerHistory.doQuery(intervalsList, checkpointBefore);
             ITmfStateInterval ret = intervalsList.get(attributeQuark);
 
             if (ret == null || !ret.intersects(t)) {
@@ -433,24 +392,21 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
          * Getting the lower and upper checkpoint timestamps that bound the time
          * range condition
          */
-        long lowerCheckpoint = Objects.requireNonNull(fCheckpoints.floor(times.min()));
-        Long upperCheckpoint = fCheckpoints.ceiling(times.max());
-        if (upperCheckpoint == null) {
-            upperCheckpoint = Collections.max(fCheckpoints);
-        }
+        long checkpointBefore = getCheckpointBefore(times.min());
+        long checkpointAfter = getCheckpointAfter(times.max());
         // We should be able to know if a transition happened between two pixels
         // if we sample 2 times more than the requested frequency.
-        if (timeArray.length > 1 && (timeArray[1] - timeArray[0]) >= 2 * fGranularity) {
+        if (timeArray.length > 1 && (timeArray[1] - timeArray[0]) >= 1.5 * fGranularity) {
             Long step = (timeArray[1] - timeArray[0]) / fGranularity * fGranularity;
             TimeRangeCondition adjustedTimes = TimeRangeCondition.forDiscreteRange(
-                    LongStream.iterate(lowerCheckpoint, i -> i + step).limit((upperCheckpoint - lowerCheckpoint) / step).boxed().toList());
+                    LongStream.iterate(checkpointBefore, i -> i + step).limit((checkpointAfter - checkpointBefore) / step).boxed().toList());
             return fInnerHistory.query2D(quarks, adjustedTimes);
         }
 
         /* Querying the partial history at the lowerCheckpoint */
         List<@Nullable ITmfStateInterval> currentStateInfo = prepareIntervalList(getNbAttributes());
         try {
-            fInnerHistory.doQuery(currentStateInfo, lowerCheckpoint);
+            fInnerHistory.doQuery(currentStateInfo, checkpointBefore);
         } catch (StateSystemDisposedException e) {
             Activator.logError(e.getMessage(), e);
         }
@@ -473,12 +429,12 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
              */
             fBackend.updateRangeCondition(quarks);
             fBackend.updateTimeCondition(times);
-            fBackend.updateQueryType(true);
+            fBackend.set2DQuery();
             /*
              * Reading the trace updating the state until the upperCheckpoint to
              * get the missing intervals
              */
-            TmfTimeRange range = new TmfTimeRange(TmfTimestamp.fromNanos(lowerCheckpoint + 1), TmfTimestamp.fromNanos(upperCheckpoint));
+            TmfTimeRange range = new TmfTimeRange(TmfTimestamp.fromNanos(checkpointBefore + 1), TmfTimestamp.fromNanos(checkpointAfter));
 
             ITmfEventRequest request = new PartialStateSystemRequest(fPartialInput, range);
             fPartialInput.getTrace().sendRequest(request);
@@ -494,7 +450,8 @@ public class PartialHistoryBackend implements IStateHistoryBackend {
         } catch (IndexOutOfBoundsException | StateSystemDisposedException e) {
             Activator.logError(e.getMessage(), e);
         } finally {
-            fBackend.updateQueryType(false);
+            fBackend.setFullQuery();
+            fBackend.clear();
             fPartialSS.releaseQueryLock();
         }
         return Collections.emptyList();

@@ -238,6 +238,9 @@ public class TransientState {
                 fOngoingStateStartTimes.add(interval.getStartTime());
                 Class<?> objectClass = value != null ? value.getClass() : null;
                 fStateValueTypes.add(objectClass);
+                if (fLatestTime < interval.getEndTime()) {
+                    fLatestTime = interval.getEndTime();
+                }
             }
         } finally {
             fRWLock.writeLock().unlock();

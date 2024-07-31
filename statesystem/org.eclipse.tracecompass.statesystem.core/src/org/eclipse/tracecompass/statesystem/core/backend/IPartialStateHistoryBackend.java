@@ -19,7 +19,7 @@ import org.eclipse.tracecompass.internal.provisional.datastore.core.condition.Ti
  * specific for the partial state system.
  *
  * @author Abdellah Rahmani
- * @since 5.2
+ * @since 5.4
  */
 public interface IPartialStateHistoryBackend extends IStateHistoryBackend {
 
@@ -30,7 +30,7 @@ public interface IPartialStateHistoryBackend extends IStateHistoryBackend {
      * @param quarksRangeCondition
      *            The range of the required attributes by the query2D()
      *
-     * @since 5.1
+     * @since 5.4
      */
     void updateRangeCondition(IntegerRangeCondition quarksRangeCondition);
 
@@ -41,7 +41,7 @@ public interface IPartialStateHistoryBackend extends IStateHistoryBackend {
      * @param timeConditionrange
      *            The range of the required attributes by the query2D()
      *
-     * @since 5.1
+     * @since 5.4
      */
     void updateTimeCondition(TimeRangeCondition timeConditionrange);
 
@@ -52,8 +52,21 @@ public interface IPartialStateHistoryBackend extends IStateHistoryBackend {
      *            The boolean parameter that if equals "true" then the query is
      *            a 2D
      *
-     * @since 5.1
+     * @since 5.4
      */
-    void updateQueryType(boolean type);
+    void setFullQuery();
+
+    /**
+     * Tells the PartialInMemoryBackend if the actual query is a 2D or not.
+     *
+     * @param type
+     *            The boolean parameter that if equals "true" then the query is
+     *            a 2D
+     *
+     * @since 5.4
+     */
+    void set2DQuery();
+
+    void clear();
 
 }
