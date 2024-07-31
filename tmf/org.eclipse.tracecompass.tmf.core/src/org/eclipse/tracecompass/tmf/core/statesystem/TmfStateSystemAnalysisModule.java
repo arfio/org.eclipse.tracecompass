@@ -37,6 +37,7 @@ import org.eclipse.tracecompass.common.core.NonNullUtils;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLog;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.ScopeLog;
+import org.eclipse.tracecompass.internal.statesystem.core.backend.historytiles.HistoryTileBackendFactory;
 import org.eclipse.tracecompass.internal.tmf.core.Activator;
 import org.eclipse.tracecompass.internal.tmf.core.statesystem.backends.partial.PartialHistoryBackend;
 import org.eclipse.tracecompass.internal.tmf.core.statesystem.backends.partial.PartialInMemoryBackend;
@@ -115,6 +116,11 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         NULL,
         /** State system backed with partial history */
         PARTIAL,
+        /**
+         * State system backed with partial history tiles
+         * @since 9.5
+         */
+        TILE,
         /**
          * Custom backend on its own. If one uses it then they need to override
          * {@link TmfStateSystemAnalysisModule#getCustomBackend(String, ITmfStateProvider)}
@@ -298,6 +304,13 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
                     return false;
                 }
                 createPartialHistory(id, provider, htFile);
+                break;
+            case TILE:
+                htFile = getSsFile();
+                if (htFile == null) {
+                    return false;
+                }
+                createTileHistory(id, provider, htFile);
                 break;
             case INMEM:
                 createInMemoryHistory(id, provider);
@@ -486,6 +499,27 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         fStateSystem = realSS;
 
         build(provider);
+    }
+
+
+    private void createTileHistory(String id, ITmfStateProvider provider, File htFile) throws TmfTraceException {
+        if (htFile.exists()) {
+            htFile.delete();
+            /* TODO: Reuse existing file */
+        }
+        try {
+            long endTime = provider.getTrace().readEnd().getValue();
+            IStateHistoryBackend backend = HistoryTileBackendFactory.createHistoryTreeBackendNewFile(id, provider.getStartTime(), endTime, provider.getVersion(), htFile);
+            fStateSystem = StateSystemFactory.newStateSystem(backend);
+            provider.assignTargetStateSystem(fStateSystem);
+            build(provider);
+        } catch (IOException e) {
+            /*
+             * If it fails here however, it means there was a problem writing to the disk,
+             * so throw a real exception this time.
+             */
+            throw new TmfTraceException(e.toString(), e);
+        }
     }
 
     /*
@@ -895,6 +929,7 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         switch (backend) {
         case FULL:
         case PARTIAL:
+        case TILE:
             File htFile = getSsFile();
             if (htFile != null) {
                 if (htFile.exists()) {

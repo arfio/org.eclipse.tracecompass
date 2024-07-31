@@ -85,7 +85,8 @@ public interface TimeRangeCondition {
      * @return the reduced condition or <code>null</code> if the reduced
      *         condition does not contain any element
      */
-    @Nullable TimeRangeCondition subCondition(long from, long to);
+    @Nullable
+    TimeRangeCondition subCondition(long from, long to);
 
     /**
      * Get a condition of a single element.
@@ -126,5 +127,4 @@ public interface TimeRangeCondition {
     static TimeRangeCondition forDiscreteRange(Collection<@NonNull Long> times) {
         return new ArrayTimeRangeCondition(times);
     }
-
 }
