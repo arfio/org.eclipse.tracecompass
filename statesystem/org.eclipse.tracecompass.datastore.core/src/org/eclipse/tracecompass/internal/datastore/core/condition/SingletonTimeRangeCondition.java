@@ -66,4 +66,8 @@ public class SingletonTimeRangeCondition implements TimeRangeCondition {
         return "SingletonTimeRangeCondition: (" + fValue + ')'; //$NON-NLS-1$
     }
 
+    @Override
+    public long[] getTimeArray() {
+        return new long[] { fValue };
+    }
 }

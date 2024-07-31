@@ -78,7 +78,8 @@ public interface TimeRangeCondition {
      * @return the reduced condition or <code>null</code> if the reduced
      *         condition does not contain any element
      */
-    @Nullable TimeRangeCondition subCondition(long from, long to);
+    @Nullable
+    TimeRangeCondition subCondition(long from, long to);
 
     /**
      * Get a condition of a single element.
@@ -119,5 +120,12 @@ public interface TimeRangeCondition {
     static TimeRangeCondition forDiscreteRange(Collection<@NonNull Long> times) {
         return new ArrayTimeRangeCondition(times);
     }
+
+    /**
+     * Gets the time range condition as an array of timestamps
+     *
+     * @return array of timestamps or empty array if the range is continuous
+     */
+    long[] getTimeArray();
 
 }
