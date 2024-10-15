@@ -133,6 +133,10 @@ public final class StructDefinition extends ScopedDefinition implements IComposi
         return fDefinitionsMap.get(fieldName);
     }
 
+    public Definition getDefinition(Integer position) {
+        return fDefinitions[position];
+    }
+
     @Override
     public @NonNull List<@NonNull String> getFieldNames() {
         return fFieldNames;

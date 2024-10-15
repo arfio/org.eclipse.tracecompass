@@ -284,6 +284,7 @@ public class CtfTmfEvent extends TmfEvent
         if (content == null) {
             content = new TmfEventField(
                     ITmfEventField.ROOT_FIELD_ID, null, parseFields(fEvent));
+//            content = new LazyEventField(ITmfEventField.ROOT_FIELD_ID, null, fEvent);
             fContent = content;
         }
         return content;

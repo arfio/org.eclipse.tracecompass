@@ -15,7 +15,9 @@
 package org.eclipse.tracecompass.ctf.core.event.types;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.eclipse.jdt.annotation.NonNull;
@@ -54,6 +56,8 @@ public class StructDeclaration extends Declaration {
     private @NonNull String[] fFieldNames;
     /** Field declarations */
     private @NonNull IDeclaration[] fFields;
+
+    private Map<String, Integer> fFieldPositionMap = new HashMap<>();
 
     /** maximum bit alignment */
     private long fMaxAlign;
@@ -109,11 +113,16 @@ public class StructDeclaration extends Declaration {
      */
     @Nullable
     public IDeclaration getField(String fieldName) {
-        final int indexOf = Arrays.asList(fFieldNames).indexOf(fieldName);
+        final int indexOf = getFieldPosition(fieldName);
         if (indexOf == -1) {
             return null;
         }
         return fFields[indexOf];
+    }
+
+    public Integer getFieldPosition(String fieldName) {
+        Integer position = fFieldPositionMap.get(fieldName);
+        return position == null ? -1 : position;
     }
 
     /**
@@ -209,6 +218,7 @@ public class StructDeclaration extends Declaration {
         fields[length] = declaration;
         fFieldNames = names;
         fFields = fields;
+        fFieldPositionMap.put(name, length);
         fMaxAlign = Math.max(fMaxAlign, declaration.getAlignment());
     }
 
