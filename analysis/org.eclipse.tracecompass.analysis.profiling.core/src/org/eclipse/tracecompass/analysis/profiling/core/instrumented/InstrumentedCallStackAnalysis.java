@@ -290,7 +290,7 @@ public abstract class InstrumentedCallStackAnalysis extends TmfStateSystemAnalys
      *         {@link EdgeStateValue}s.
      */
     @SuppressWarnings("null")
-    public List<ITmfStateInterval> getLinks(long start, long end, IProgressMonitor monitor) {
+    public List<ITmfStateInterval> getLinks(List<Long> times, IProgressMonitor monitor) {
         ITmfStateSystem ss = getStateSystem();
         if (ss == null) {
             return Collections.emptyList();
@@ -304,7 +304,7 @@ public abstract class InstrumentedCallStackAnalysis extends TmfStateSystemAnalys
         // collect all the sampled edge intervals
         List<ITmfStateInterval> list = new ArrayList<>();
         try {
-            for (ITmfStateInterval interval : ss.query2D(quarks, start, end)) {
+            for (ITmfStateInterval interval : ss.query2D(quarks, times)) {
                 Object value = interval.getValue();
                 if (monitor.isCanceled()) {
                     return Collections.emptyList();

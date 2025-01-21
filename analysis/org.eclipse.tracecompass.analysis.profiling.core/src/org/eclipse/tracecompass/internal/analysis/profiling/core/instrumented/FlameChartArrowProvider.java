@@ -23,6 +23,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.analysis.profiling.core.instrumented.InstrumentedCallStackAnalysis;
 import org.eclipse.tracecompass.internal.tmf.core.model.filters.FetchParametersUtils;
 import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
+import org.eclipse.tracecompass.tmf.core.dataprovider.DataProviderParameterUtils;
 import org.eclipse.tracecompass.tmf.core.model.filters.TimeQueryFilter;
 import org.eclipse.tracecompass.tmf.core.trace.ITmfTrace;
 import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
@@ -57,11 +58,12 @@ public class FlameChartArrowProvider {
      */
     public List<ITmfStateInterval> fetchArrows(Map<String, Object> fetchParameters, @Nullable IProgressMonitor monitor) {
         TimeQueryFilter filter = FetchParametersUtils.createTimeQuery(fetchParameters);
+        List<Long> times = DataProviderParameterUtils.extractTimeRequested(fetchParameters);
         if (filter == null) {
             return Collections.emptyList();
         }
-        long start = filter.getStart();
-        long end = filter.getEnd();
+//        long start = filter.getStart();
+//        long end = filter.getEnd();
 
         InstrumentedCallStackAnalysis csModule = null;
         Iterable<InstrumentedCallStackAnalysis> modules = TmfTraceUtils.getAnalysisModulesOfClass(fTrace, InstrumentedCallStackAnalysis.class);
@@ -70,7 +72,8 @@ public class FlameChartArrowProvider {
         List<ITmfStateInterval> allEdges = new ArrayList<>();
         while (iterator.hasNext()) {
             csModule = iterator.next();
-            List<ITmfStateInterval> moduleEdges = csModule.getLinks(start, end, monitor == null ? new NullProgressMonitor() : monitor);
+            List<ITmfStateInterval> moduleEdges = csModule.getLinks(times, monitor == null ? new NullProgressMonitor() : monitor);
+//            List<ITmfStateInterval> moduleEdges = csModule.getLinks(start, end, monitor == null ? new NullProgressMonitor() : monitor);
             allEdges.addAll(moduleEdges);
         }
         return allEdges;

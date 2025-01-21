@@ -20,6 +20,7 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.tracecompass.analysis.os.linux.core.model.HostThread;
 import org.eclipse.tracecompass.analysis.profiling.core.instrumented.EdgeStateValue;
 import org.eclipse.tracecompass.analysis.profiling.core.instrumented.InstrumentedCallStackAnalysis;
+import org.eclipse.tracecompass.internal.provisional.datastore.core.condition.TimeRangeCondition;
 import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
 import org.eclipse.tracecompass.statesystem.core.tests.shared.utils.StateIntervalStub;
 import org.eclipse.tracecompass.tmf.core.statesystem.ITmfStateProvider;
@@ -52,7 +53,7 @@ public class CallStackAnalysisStub extends InstrumentedCallStackAnalysis {
     }
 
     @Override
-    public List<ITmfStateInterval> getLinks(long start, long end, IProgressMonitor monitor) {
+    public List<ITmfStateInterval> getLinks(List<Long> times, IProgressMonitor monitor) {
         ITmfTrace trace = Objects.requireNonNull(getTrace());
         String hostId = trace.getHostId();
 
@@ -67,8 +68,10 @@ public class CallStackAnalysisStub extends InstrumentedCallStackAnalysis {
                 new StateIntervalStub(5, 9, new EdgeStateValue(4, tid6, tid7)),
                 new StateIntervalStub(9, 11, new EdgeStateValue(5, tid6, tid6)));
 
+        TimeRangeCondition timeCondition = TimeRangeCondition.forDiscreteRange(times);
+
         return intervals.stream()
-                .filter(i -> (i.getStartTime() >= start && i.getStartTime() <= end) || (i.getEndTime() >= start && i.getEndTime() <= end))
+                .filter(i -> timeCondition.intersects(i.getStartTime(), i.getEndTime()))
                 .collect(Collectors.toList());
     }
 }
