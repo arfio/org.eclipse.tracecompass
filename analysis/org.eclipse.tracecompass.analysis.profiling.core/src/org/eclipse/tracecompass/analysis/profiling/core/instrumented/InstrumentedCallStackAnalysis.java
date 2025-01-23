@@ -28,9 +28,9 @@ import org.eclipse.tracecompass.analysis.profiling.core.callgraph.CallGraph;
 import org.eclipse.tracecompass.analysis.profiling.core.callgraph.ICallGraphProvider2;
 import org.eclipse.tracecompass.analysis.profiling.core.callstack.CallStackStateProvider;
 import org.eclipse.tracecompass.analysis.profiling.core.callstack2.CallStackHostUtils;
-import org.eclipse.tracecompass.analysis.profiling.core.callstack2.CallStackSeries;
 import org.eclipse.tracecompass.analysis.profiling.core.callstack2.CallStackHostUtils.IHostIdResolver;
 import org.eclipse.tracecompass.analysis.profiling.core.callstack2.CallStackHostUtils.TraceHostIdResolver;
+import org.eclipse.tracecompass.analysis.profiling.core.callstack2.CallStackSeries;
 import org.eclipse.tracecompass.analysis.profiling.core.callstack2.CallStackSeries.IThreadIdResolver;
 import org.eclipse.tracecompass.analysis.profiling.core.tree.IWeightedTreeGroupDescriptor;
 import org.eclipse.tracecompass.analysis.timing.core.segmentstore.IAnalysisProgressListener;
@@ -295,7 +295,6 @@ public abstract class InstrumentedCallStackAnalysis extends TmfStateSystemAnalys
         if (ss == null) {
             return Collections.emptyList();
         }
-
         Collection<Integer> quarks = getEdgeQuarks();
         if (quarks.isEmpty()) {
             return Collections.emptyList();

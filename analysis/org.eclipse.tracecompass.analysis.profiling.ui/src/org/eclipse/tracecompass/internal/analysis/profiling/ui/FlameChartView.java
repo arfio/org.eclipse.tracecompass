@@ -47,6 +47,7 @@ import org.eclipse.tracecompass.internal.tmf.core.model.filters.FetchParametersU
 import org.eclipse.tracecompass.tmf.core.dataprovider.DataProviderManager;
 import org.eclipse.tracecompass.tmf.core.model.ICoreElementResolver;
 import org.eclipse.tracecompass.tmf.core.model.filters.SelectionTimeQueryFilter;
+import org.eclipse.tracecompass.tmf.core.model.timegraph.ITimeGraphArrow;
 import org.eclipse.tracecompass.tmf.core.model.timegraph.ITimeGraphDataProvider;
 import org.eclipse.tracecompass.tmf.core.model.timegraph.ITimeGraphRowModel;
 import org.eclipse.tracecompass.tmf.core.model.timegraph.ITimeGraphState;
@@ -73,9 +74,12 @@ import org.eclipse.tracecompass.tmf.ui.views.TmfViewFactory;
 import org.eclipse.tracecompass.tmf.ui.views.timegraph.BaseDataProviderTimeGraphView;
 import org.eclipse.tracecompass.tmf.ui.widgets.timegraph.TimeGraphPresentationProvider;
 import org.eclipse.tracecompass.tmf.ui.widgets.timegraph.TimeGraphViewer;
+import org.eclipse.tracecompass.tmf.ui.widgets.timegraph.model.ILinkEvent;
+import org.eclipse.tracecompass.tmf.ui.widgets.timegraph.model.ITimeEvent;
 import org.eclipse.tracecompass.tmf.ui.widgets.timegraph.model.ITimeGraphEntry;
 import org.eclipse.tracecompass.tmf.ui.widgets.timegraph.model.NamedTimeEvent;
 import org.eclipse.tracecompass.tmf.ui.widgets.timegraph.model.TimeGraphEntry;
+import org.eclipse.tracecompass.tmf.ui.widgets.timegraph.model.TimeLinkEvent;
 import org.eclipse.tracecompass.tmf.ui.widgets.timegraph.widgets.TimeGraphControl;
 import org.eclipse.tracecompass.tmf.ui.widgets.timegraph.widgets.Utils;
 import org.eclipse.ui.IEditorPart;
@@ -162,6 +166,7 @@ public class FlameChartView extends BaseDataProviderTimeGraphView {
     private boolean fSyncSelection = false;
 
     private final Map<Long, ITimeGraphState> fFunctions = new HashMap<>();
+    private List<ILinkEvent> fLinks = new ArrayList<>();
 
     // ------------------------------------------------------------------------
     // Classes
@@ -317,13 +322,51 @@ public class FlameChartView extends BaseDataProviderTimeGraphView {
             }
         });
 
+
+
         IEditorPart editor = getSite().getPage().getActiveEditor();
         if (editor instanceof ITmfTraceEditor) {
             ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
             if (trace != null) {
                 traceSelected(new TmfTraceSelectedSignal(this, trace));
+
+                getTimeGraphViewer().addTimeListener(event -> {
+                    if (event != null) {
+                        ISelection selection = getTimeGraphViewer().getTimeGraphControl().getSelection();
+
+                        FlameChartDataProvider provider = DataProviderManager
+                                .getInstance().getOrCreateDataProvider(trace, getProviderId(), FlameChartDataProvider.class);
+                        List<ILinkEvent> linkList = new ArrayList<>();
+                        if (selection instanceof StructuredSelection && ((StructuredSelection) selection).size() > 1 && provider != null) {
+                            ITimeEvent interval = (ITimeEvent) ((StructuredSelection) selection).toList().get(1);
+                            System.out.println(interval);
+                            ITimeGraphEntry entry = getTimeGraphViewer().getSelection();
+                            SelectionTimeQueryFilter filter = new SelectionTimeQueryFilter(
+                                    interval.getTime() - 1, interval.getTime() + interval.getDuration() - 2, 100, Collections.singletonList(((TimeGraphEntry) entry).getEntryModel().getId()));
+                            TmfModelResponse<List<ITimeGraphArrow>> response = provider.fetchArrows(FetchParametersUtils.selectionTimeQueryToMap(filter), new NullProgressMonitor());
+                            List<ITimeGraphArrow> model = response.getModel();
+
+                            if (model != null) {
+                                for (ITimeGraphArrow arrow : model) {
+                                    ITimeGraphEntry prevEntry;
+                                    ITimeGraphEntry nextEntry;
+                                    synchronized (fEntries) {
+                                        prevEntry = fEntries.get(provider, arrow.getSourceId());
+                                        nextEntry = fEntries.get(provider, arrow.getDestinationId());
+                                    }
+                                    if (prevEntry != null && nextEntry != null) {
+                                        linkList.add(new TimeLinkEvent(arrow, prevEntry, nextEntry));
+                                    }
+                                }
+                            }
+                        }
+                        fLinks = linkList;
+                        startZoomThread(getTimeGraphViewer().getTime0(), getTimeGraphViewer().getTime1());
+                    }
+                });
             }
         }
+
     }
 
     /**
@@ -389,6 +432,12 @@ public class FlameChartView extends BaseDataProviderTimeGraphView {
         if (parentTrace == getTrace()) {
             refresh();
         }
+    }
+
+    @Override
+    protected @Nullable List<ILinkEvent> getLinkList(long zoomStartTime, long zoomEndTime, long resolution,
+            IProgressMonitor monitor) {
+        return fLinks;
     }
 
     @Override

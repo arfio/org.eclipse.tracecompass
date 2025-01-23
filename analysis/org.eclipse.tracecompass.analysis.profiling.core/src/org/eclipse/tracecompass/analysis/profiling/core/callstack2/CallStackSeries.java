@@ -322,7 +322,6 @@ public class CallStackSeries implements ISegmentStore<ISegment> {
                 elements.add(el);
                 el = el.getParentElement();
             }
-            Collections.reverse(elements);
             if (elements.size() <= fLevel) {
                 return null;
             }

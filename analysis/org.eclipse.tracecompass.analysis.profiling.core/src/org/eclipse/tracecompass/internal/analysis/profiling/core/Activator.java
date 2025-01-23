@@ -11,7 +11,9 @@
 
 package org.eclipse.tracecompass.internal.analysis.profiling.core;
 
+import org.eclipse.tracecompass.analysis.profiling.core.instrumented.EdgeStateValue;
 import org.eclipse.tracecompass.common.core.TraceCompassActivator;
+import org.eclipse.tracecompass.internal.provisional.statesystem.core.statevalue.CustomStateValue;
 
 /**
  * Activator
@@ -39,7 +41,7 @@ public class Activator extends TraceCompassActivator {
 
     @Override
     protected void startActions() {
-        // Do nothing
+        CustomStateValue.registerCustomFactory(EdgeStateValue.CUSTOM_TYPE_ID, EdgeStateValue.EDGE_STATE_VALUE_FACTORY);
     }
 
     @Override
@@ -47,4 +49,3 @@ public class Activator extends TraceCompassActivator {
         // Do nothing
     }
 }
-

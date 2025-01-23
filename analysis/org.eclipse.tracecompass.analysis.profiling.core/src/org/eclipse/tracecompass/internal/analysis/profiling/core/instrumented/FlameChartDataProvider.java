@@ -50,6 +50,7 @@ import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.FlowScopeLo
 import org.eclipse.tracecompass.internal.analysis.profiling.core.instrumented.FlameChartEntryModel.EntryType;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ModelManager;
 import org.eclipse.tracecompass.internal.analysis.profiling.core.model.ProcessStatusInterval;
+import org.eclipse.tracecompass.internal.tmf.core.model.filters.FetchParametersUtils;
 import org.eclipse.tracecompass.segmentstore.core.ISegment;
 import org.eclipse.tracecompass.statesystem.core.exceptions.TimeRangeException;
 import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
@@ -59,6 +60,7 @@ import org.eclipse.tracecompass.tmf.core.model.CommonStatusMessage;
 import org.eclipse.tracecompass.tmf.core.model.IOutputStyleProvider;
 import org.eclipse.tracecompass.tmf.core.model.OutputElementStyle;
 import org.eclipse.tracecompass.tmf.core.model.OutputStyleModel;
+import org.eclipse.tracecompass.tmf.core.model.filters.TimeQueryFilter;
 import org.eclipse.tracecompass.tmf.core.model.timegraph.ITimeGraphArrow;
 import org.eclipse.tracecompass.tmf.core.model.timegraph.ITimeGraphDataProvider;
 import org.eclipse.tracecompass.tmf.core.model.timegraph.ITimeGraphRowModel;
@@ -193,10 +195,12 @@ public class FlameChartDataProvider extends AbstractTmfTraceDataProvider impleme
     @Override
     public TmfModelResponse<List<ITimeGraphArrow>> fetchArrows(Map<String, Object> fetchParameters, @Nullable IProgressMonitor monitor) {
         List<ITmfStateInterval> arrows = fArrowProvider.fetchArrows(fetchParameters, monitor);
+        TimeQueryFilter filter = FetchParametersUtils.createTimeQuery(fetchParameters);
+        List<Long> ids = DataProviderParameterUtils.extractSelectedItems(fetchParameters);
         if (monitor != null && monitor.isCanceled()) {
             return new TmfModelResponse<>(null, Status.CANCELLED, CommonStatusMessage.TASK_CANCELLED);
         }
-        if (arrows.isEmpty()) {
+        if (arrows.isEmpty() || filter == null || ids == null) {
             return new TmfModelResponse<>(Collections.emptyList(), Status.COMPLETED, CommonStatusMessage.COMPLETED);
         }
         List<ITimeGraphArrow> tgArrows = new ArrayList<>();
@@ -228,7 +232,10 @@ public class FlameChartDataProvider extends AbstractTmfTraceDataProvider impleme
             }
             Long src = findEntry(callstacks, edge.getSource(), interval.getStartTime());
             Long dst = findEntry(callstacks, edge.getDestination(), interval.getEndTime() + 1);
-            if (src != null && dst != null) {
+
+            boolean isArrowInTimeRange = (interval.getStartTime() >= filter.getStart() && interval.getStartTime() <= filter.getEnd() && ids.contains(src)) ||
+                    (interval.getEndTime() >= filter.getStart() && interval.getEndTime() <= filter.getEnd() && ids.contains(dst));
+            if (src != null && dst != null && isArrowInTimeRange) {
                 long duration = interval.getEndTime() - interval.getStartTime() + 1;
                 tgArrows.add(new TimeGraphArrow(src, dst, interval.getStartTime(), duration, edge.getId()));
             }
