@@ -377,7 +377,7 @@ public class FlameGraphView extends TmfView {
     }
 
     private String getProviderId() {
-        String secondaryId = this.getViewSite().getSecondaryId();
+        String secondaryId = getViewId().split(":")[0] + "-" + this.getViewSite().getSecondaryId();
         // The secondary ID may contain the '[COLON]' text, in which case, it
         // should be replace with a real ':' and this is the complete
         // providerId. This kind of secondary ID may come from external sources
@@ -414,6 +414,7 @@ public class FlameGraphView extends TmfView {
 
     @SuppressWarnings("null")
     private void buildEntryList(@NonNull ITmfTrace trace, @NonNull ITmfTrace parentTrace, @NonNull Map<String, Object> additionalParams, @NonNull IProgressMonitor monitor) {
+        System.out.println("buildEntryList: " + getProviderId());
         @SuppressWarnings("unchecked")
         ITimeGraphDataProvider<@NonNull TimeGraphEntryModel> dataProvider = DataProviderManager
                 .getInstance().getOrCreateDataProvider(trace, getProviderId(), ITimeGraphDataProvider.class);
@@ -1584,26 +1585,5 @@ public class FlameGraphView extends TmfView {
     public void regexFilterApplied(TmfFilterAppliedSignal signal) {
         // Restart the zoom thread to apply the new filter
         Display.getDefault().asyncExec(() -> restartZoomThread());
-    }
-
-    /**
-     * Listen to see if one of the view's analysis is restarted
-     *
-     * @param signal
-     *            The analysis started signal
-     */
-    @TmfSignalHandler
-    public void analysisStart(TmfStartAnalysisSignal signal) {
-        ITmfTrace trace = getTrace();
-        if (trace == null) {
-            return;
-        }
-        IAnalysisModule module = signal.getAnalysisModule();
-        // It is not possible to link the module ID to the data provider, so
-        // just rebuild if the started module is a weighted tree provider
-        // FIXME This may be a performance issue
-        if (module instanceof IWeightedTreeProvider) {
-            buildFlameGraph(trace, null, null);
-        }
     }
 }

@@ -44,6 +44,12 @@ public class FlameGraphDataProviderFactory implements IDataProviderFactory {
         return null;
     }
 
+    /**
+     * @param secondaryId
+     *            In this, instance the secondaryId can be a concatenation of
+     *            the viewId and analysisId as the flamegraph selection view
+     *            needs a separate instance of the flamegraph dataprovider.
+     */
     @Override
     public @Nullable ITmfTreeDataProvider<? extends ITmfTreeDataModel> createProvider(ITmfTrace trace, String secondaryId) {
         Collection<ITmfTrace> traces = TmfTraceManager.getTraceSetWithExperiment(trace);
@@ -68,9 +74,10 @@ public class FlameGraphDataProviderFactory implements IDataProviderFactory {
         if (dataProvider != null) {
             return dataProvider;
         }
+        String analysisId = secondaryId.contains("-") ? secondaryId.split("-")[1] : secondaryId; //$NON-NLS-1$ //$NON-NLS-2$
         // The trace can be an experiment, so we need to know if there are
         // multiple analysis modules with the same ID
-        IAnalysisModule analysisModule = trace.getAnalysisModule(secondaryId);
+        IAnalysisModule analysisModule = trace.getAnalysisModule(analysisId);
         if (!(analysisModule instanceof IWeightedTreeProvider)) {
             return null;
         }

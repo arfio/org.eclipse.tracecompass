@@ -244,6 +244,7 @@ public class FlameGraphDataProvider<@NonNull N, E, @NonNull T extends WeightedTr
     public @NonNull TmfModelResponse<TmfTreeModel<FlameChartEntryModel>> fetchTree(Map<String, Object> fetchParameters, @Nullable IProgressMonitor monitor) {
 
         fLock.writeLock().lock();
+        System.out.println("lock flamegraphdataprovider#fetchtree");
         try (FlowScopeLog scope = new FlowScopeLogBuilder(LOGGER, Level.FINE, "FlameGraphDataProvider#fetchTree") //$NON-NLS-1$
                 .setCategory(getClass().getSimpleName()).build()) {
             // Did we cache this tree with those parameters and the callgraph?
@@ -251,6 +252,8 @@ public class FlameGraphDataProvider<@NonNull N, E, @NonNull T extends WeightedTr
             // may vary if the analysis was done again, we need to cache for
             // callgraph as well
             SubMonitor subMonitor = Objects.requireNonNull(SubMonitor.convert(monitor, "FlameGraphDataProvider#fetchRowModel", 2)); //$NON-NLS-1$
+
+            System.out.println("getCallGraph flamegraphdataprovider#fetchtree");
             IWeightedTreeSet<N, Object, WeightedTree<N>> callGraph = getCallGraph(fetchParameters, subMonitor);
             if (callGraph == null) {
                 return new TmfModelResponse<>(null, ITmfResponse.Status.FAILED, CommonStatusMessage.TASK_CANCELLED);
@@ -266,6 +269,7 @@ public class FlameGraphDataProvider<@NonNull N, E, @NonNull T extends WeightedTr
             fCgEntries.clear();
 
             if (subMonitor.isCanceled()) {
+                System.out.println("cancelled flamegraphdataprovider#fetchtree");
                 return new TmfModelResponse<>(null, ITmfResponse.Status.CANCELLED, CommonStatusMessage.TASK_CANCELLED);
             }
 
@@ -276,6 +280,7 @@ public class FlameGraphDataProvider<@NonNull N, E, @NonNull T extends WeightedTr
             @SuppressWarnings("null")
             FlameChartEntryModel.Builder traceEntry = new FlameChartEntryModel.Builder(fTraceId, -1, getTrace().getName(), start, FlameChartEntryModel.EntryType.TRACE, -1);
 
+            System.out.println("buildTree flamegraphdataprovider#fetchtree");
             buildWeightedTreeEntries(callGraph, builder, traceEntry);
 
             ImmutableList.Builder<FlameChartEntryModel> treeBuilder = ImmutableList.builder();
@@ -299,6 +304,7 @@ public class FlameGraphDataProvider<@NonNull N, E, @NonNull T extends WeightedTr
             return response;
         } finally {
             fLock.writeLock().unlock();
+            System.out.println("unlock flamegraphdataprovider#fetchtree");
         }
     }
 
@@ -365,6 +371,8 @@ public class FlameGraphDataProvider<@NonNull N, E, @NonNull T extends WeightedTr
         Collection<@NonNull ?> elements = callGraph.getElements();
         for (Object element : elements) {
             buildChildrenEntries(element, wtProvider, callGraph, builder, traceEntry);
+
+            System.out.println("buildTree#elements flamegraphdataprovider#fetchtree");
         }
     }
 
