@@ -12,8 +12,8 @@ import java.util.logging.Logger;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLog;
-import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.FlowScopeLog;
-import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.FlowScopeLogBuilder;
+import org.eclipse.tracecompass.traceeventlogger.LogUtils.FlowScopeLog;
+import org.eclipse.tracecompass.traceeventlogger.LogUtils.FlowScopeLogBuilder;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystemBuilder;
 
 /**
@@ -31,8 +31,8 @@ public class HistoryTileConfig {
     private static final int FILE_VERSION = 1;
     private static final @NonNull Logger LOGGER = TraceCompassLog.getLogger(HistoryTileConfig.class);
     /**
-     * We expect every interval to have an end time one nanosecond less than the next
-     * interval start time if true.
+     * We expect every interval to have an end time one nanosecond less than the
+     * next interval start time if true.
      */
     private boolean fIsEveryIntervalContiguous;
     private long[] fResolutions;
@@ -69,7 +69,15 @@ public class HistoryTileConfig {
     }
 
     public long getStartTileSection() {
-        return calculateConfigHeaderSize() + STATIC_HEADER_SIZE;
+        return (long) calculateConfigHeaderSize() + STATIC_HEADER_SIZE;
+    }
+
+    public long getStartTreeSection(FileChannel channel) {
+        long lastTilePosition = 0;
+        for (long[] tilePositions: fTilePositions) {
+            lastTilePosition = Long.max(tilePositions[tilePositions.length - 1], lastTilePosition);
+        }
+        return lastTilePosition + getTileSize(channel, lastTilePosition);
     }
 
     public void addTile(HistoryTile tile, long tilePosition) {
@@ -88,23 +96,42 @@ public class HistoryTileConfig {
             long start = fStart + fResolutions[resolutionIndex] * fNPixels * tileIndex;
             long end = start + fResolutions[resolutionIndex] * fNPixels;
             long tilePosition = fTilePositions.get(resolutionIndex)[tileIndex];
+
             if (tilePosition == 0) {
                 return new HistoryTile(fResolutions[resolutionIndex], start, end);
             }
-            ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+            int tileSize = getTileSize(channel, tilePosition);
+            ByteBuffer buffer = ByteBuffer.allocate(tileSize);
             buffer.order(ByteOrder.LITTLE_ENDIAN);
             buffer.clear();
             try {
+                synchronized(this) {
+                    channel.position(tilePosition);
+                    channel.read(buffer);
+                }
+                return HistoryTile.readTile(buffer, fResolutions[resolutionIndex], start, end, fIsEveryIntervalContiguous);
+            } catch(IOException e) {
+
+            }
+            return new HistoryTile(fResolutions[resolutionIndex], start, end);
+        }
+    }
+
+    private int getTileSize(FileChannel channel, long tilePosition) {
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.clear();
+        try {
+            synchronized(this) {
                 channel.position(tilePosition);
                 channel.read(buffer);
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
             }
-            buffer.flip();
-            int tileSize = buffer.getInt();
-            return HistoryTile.readTile(channel, tilePosition, tileSize, fResolutions[resolutionIndex], start, end, fIsEveryIntervalContiguous);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
+        buffer.flip();
+        return buffer.getInt();
     }
 
     public void writeHeader(FileChannel channel) {
@@ -151,54 +178,60 @@ public class HistoryTileConfig {
         }
     }
 
-    public void readHeader(FileChannel channel) {
+    public long readHeader(FileChannel channel) throws IOException {
         ByteBuffer staticHeaderBuffer = ByteBuffer.allocate(STATIC_HEADER_SIZE);
         staticHeaderBuffer.order(ByteOrder.LITTLE_ENDIAN);
         staticHeaderBuffer.clear();
 
-        try {
-            channel.position(0);
-            /* Static header portion */
-            channel.read(staticHeaderBuffer);
+        channel.position(0);
+        /* Static header portion */
+        channel.read(staticHeaderBuffer);
 
-            int magicNumber = staticHeaderBuffer.getInt();
-            if (magicNumber != HISTORY_FILE_MAGIC_NUMBER) {
-                throw new IOException("Wrong magic number"); //$NON-NLS-1$
-            }
-            int fileVersion = staticHeaderBuffer.getInt();
-            if (fileVersion != FILE_VERSION) {
-                throw new IOException("Mismatching History Tile file format versions"); //$NON-NLS-1$
-            }
-            int providerVersion = staticHeaderBuffer.getInt();
-            if (providerVersion != fProviderVersion && providerVersion != ITmfStateSystemBuilder.IGNORE_PROVIDER_VERSION) {
-                throw new IOException("Mismatching event handler versions"); //$NON-NLS-1$
-            }
-            int configHeaderSize = staticHeaderBuffer.getInt();
-            fIsEveryIntervalContiguous = staticHeaderBuffer.get() == 1 ? false : true;
+        int magicNumber = staticHeaderBuffer.getInt();
+        if (magicNumber != HISTORY_FILE_MAGIC_NUMBER) {
+            throw new IOException("Wrong magic number"); //$NON-NLS-1$
+        }
+        int fileVersion = staticHeaderBuffer.getInt();
+        if (fileVersion != FILE_VERSION) {
+            throw new IOException("Mismatching History Tile file format versions"); //$NON-NLS-1$
+        }
+        int providerVersion = staticHeaderBuffer.getInt();
+        if (providerVersion != fProviderVersion && providerVersion != ITmfStateSystemBuilder.IGNORE_PROVIDER_VERSION) {
+            throw new IOException("Mismatching event handler versions"); //$NON-NLS-1$
+        }
+        int configHeaderSize = staticHeaderBuffer.getInt();
+        fIsEveryIntervalContiguous = staticHeaderBuffer.get() == 1;
 
-            /* Config header portion */
-            ByteBuffer configHeaderBuffer = ByteBuffer.allocate(configHeaderSize);
-            configHeaderBuffer.order(ByteOrder.LITTLE_ENDIAN);
-            configHeaderBuffer.clear();
-            channel.read(configHeaderBuffer);
+        /* Config header portion */
+        ByteBuffer configHeaderBuffer = ByteBuffer.allocate(configHeaderSize);
+        configHeaderBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        configHeaderBuffer.clear();
+        channel.read(configHeaderBuffer);
 
-            fNPixels = configHeaderBuffer.getInt();
-            int nResolutions = configHeaderBuffer.getInt();
-            fResolutions = new long[nResolutions];
+        fNPixels = configHeaderBuffer.getInt();
+        int nResolutions = configHeaderBuffer.getInt();
+        fResolutions = new long[nResolutions];
 
-            if (fResolutions.length > 0) {
-                for (int i = 0; i < fResolutions.length; i++) {
-                    fResolutions[i] = configHeaderBuffer.getLong();
-                    configHeaderBuffer.getInt(fTilePositions.get(i).length);
-                    for (int j = 0; j < fTilePositions.get(i).length; j++) {
-                        configHeaderBuffer.putLong(fTilePositions.get(i)[j]);
-                    }
+        /*
+         * if 0 tiles are saved then the end of the tile section is right after
+         * the header section
+         */
+        // TODO: refactor using existing methods
+        long tileSectionEnd = (long) configHeaderSize + STATIC_HEADER_SIZE;
+        long lastTilePosition = 0;
+        if (fResolutions.length > 0) {
+            for (int i = 0; i < fResolutions.length; i++) {
+                fResolutions[i] = configHeaderBuffer.getLong();
+                configHeaderBuffer.getInt(fTilePositions.get(i).length);
+                for (int j = 0; j < fTilePositions.get(i).length; j++) {
+                    long tilePosition = fTilePositions.get(i)[j];
+                    lastTilePosition = Long.max(tilePosition, lastTilePosition);
+                    configHeaderBuffer.putLong(tilePosition);
                 }
             }
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            tileSectionEnd = lastTilePosition + getTileSize(channel, lastTilePosition);
         }
+        return tileSectionEnd;
     }
 
     private int calculateConfigHeaderSize() {

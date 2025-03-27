@@ -48,7 +48,11 @@ public class HistoryTileBackendFactory {
     public static IStateHistoryBackend createHistoryTreeBackendNewFile(String ssid, long startTime, long endTime, int providerVersion, File stateFile, boolean isEveryIntervalContiguous) throws IOException {
         long largestResolution = (endTime - startTime) / N_PIXELS + 1;
         long resolution = largestResolution;
-        int nTiles = (int) Math.round(Math.log((double) MIN_RESOLUTION / largestResolution) / Math.log(REDUCTION_FACTOR / 100.0)) + 1;
+        long minResolution = MIN_RESOLUTION;
+        if (MIN_RESOLUTION > endTime - startTime) {
+            minResolution = 1;
+        }
+        int nTiles = (int) Math.round(Math.log((double) minResolution / largestResolution) / Math.log(REDUCTION_FACTOR / 100.0)) + 1;
         long[] resolutions = new long[nTiles];
         for (int i = 0; i < nTiles; i++) {
             resolutions[i] = resolution;

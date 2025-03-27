@@ -3,6 +3,7 @@ package org.eclipse.tracecompass.internal.statesystem.core.backend.historytiles;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.tracecompass.datastore.core.encoding.HTVarInt;
@@ -26,7 +27,7 @@ public class TileInterval implements ITmfStateInterval {
     private long fEndTime;
     private Object fValue;
 
-    private static final Charset CHARSET = Charset.forName("UTF-8"); //$NON-NLS-1$
+    private static final Charset CHARSET = StandardCharsets.UTF_8;
     /* 'Byte' equivalent for state values types */
     private static final byte TYPE_NULL = -1;
     private static final byte TYPE_INTEGER = 0;
@@ -96,9 +97,9 @@ public class TileInterval implements ITmfStateInterval {
             return Long.BYTES;
         } else if (fValue instanceof Double) {
             return Double.BYTES;
-        } else if (fValue instanceof CustomStateValue) {
+        } else if (fValue instanceof CustomStateValue customStateValue) {
             /* Length of serialized value (short) + state value */
-            return Short.BYTES + ((CustomStateValue) fValue).getSerializedSize();
+            return Short.BYTES + customStateValue.getSerializedSize();
         }
         String str = String.valueOf(fValue);
         int strLength = str.getBytes(CHARSET).length;
@@ -125,12 +126,12 @@ public class TileInterval implements ITmfStateInterval {
             } else if (value instanceof Double) {
                 buffer.put(TYPE_DOUBLE);
                 buffer.putDouble((double) value);
-            } else if (value instanceof CustomStateValue) {
+            } else if (value instanceof CustomStateValue customStateValue) {
                 buffer.put(TYPE_CUSTOM);
-                int size = ((CustomStateValue) value).getSerializedSize();
+                int size = customStateValue.getSerializedSize();
                 buffer.putShort((short) size);
                 ISafeByteBufferWriter safeBuffer = SafeByteBufferFactory.wrapWriter(buffer, size);
-                ((CustomStateValue) value).serialize(safeBuffer);
+                customStateValue.serialize(safeBuffer);
             } else {
                 String string = String.valueOf(value);
                 buffer.put(TYPE_STRING);

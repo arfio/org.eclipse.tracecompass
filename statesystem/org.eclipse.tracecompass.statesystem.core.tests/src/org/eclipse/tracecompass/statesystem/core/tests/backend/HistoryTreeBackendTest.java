@@ -92,7 +92,7 @@ public class HistoryTreeBackendTest extends StateHistoryBackendTestBase {
     }
 
     @Override
-    protected IStateHistoryBackend getBackendForBuilding(long startTime) throws IOException {
+    protected IStateHistoryBackend getBackendForBuilding(long startTime, long endTime) throws IOException {
         File historyTreeFile = checkNotNull(File.createTempFile("HistoryTreeBackendTest", ".ht"));
         fHistoryTreeFiles.add(historyTreeFile);
         HistoryTreeBackend backend = new HistoryTreeBackend(SSID, historyTreeFile, PROVIDER_VERSION, startTime, fBlockSize, fMaxChildren);

@@ -33,7 +33,6 @@ import java.util.logging.Logger;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils;
 import org.eclipse.tracecompass.internal.statesystem.core.backend.historytree.HTConfig;
 import org.eclipse.tracecompass.internal.statesystem.core.backend.historytree.HTInterval;
 import org.eclipse.tracecompass.internal.statesystem.core.backend.historytree.HTNode;
@@ -43,6 +42,7 @@ import org.eclipse.tracecompass.internal.statesystem.core.backend.historytree.Le
 import org.eclipse.tracecompass.internal.statesystem.core.backend.historytree.ParentNode;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystemBuilder;
 import org.eclipse.tracecompass.statesystem.core.exceptions.TimeRangeException;
+import org.eclipse.tracecompass.traceeventlogger.LogUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -697,7 +697,7 @@ public class HistoryTreeClassic implements IHistoryTree {
      */
     public void logTreeStatistics(Logger logger) {
         if (logger.isLoggable(Level.FINEST)) {
-            TraceCompassLogUtils.traceInstant(logger, Level.FINEST, "ThreadedHistoryTreeBackend#finishedBuilding", //$NON-NLS-1$
+            LogUtils.traceInstant(logger, Level.FINEST, "ThreadedHistoryTreeBackend#finishedBuilding", //$NON-NLS-1$
                     "fileName", fConfig.getStateFile().getName(), "blocksize", fConfig.getBlockSize(), "maxChildrenPerNode", fConfig.getMaxChildren(), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                     "treeDepth", fLatestBranch.size(), "treeFileSize", getFileSize(), "rootSeqNum", fLatestBranch.get(0).getSequenceNumber(), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                     "latestLeafSeqNum", fLatestBranch.get(fLatestBranch.size() - 1).getSequenceNumber(), "averageLeafDepth", getAverageLeafDepth()); //$NON-NLS-1$ //$NON-NLS-2$

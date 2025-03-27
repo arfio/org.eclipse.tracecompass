@@ -63,6 +63,11 @@ public class LttngUstCallStackAnalysis extends InstrumentedCallStackAnalysis {
     }
 
     @Override
+    protected StateSystemBackendType getBackendType() {
+        return StateSystemBackendType.TILE;
+    }
+
+    @Override
     protected @NonNull ITmfStateProvider createStateProvider() {
         return new LttngUstCallStackProvider(Objects.requireNonNull(getTrace()));
     }

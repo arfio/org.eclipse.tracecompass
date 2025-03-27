@@ -35,8 +35,6 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.common.core.NonNullUtils;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLog;
-import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils;
-import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.ScopeLog;
 import org.eclipse.tracecompass.internal.statesystem.core.backend.historytiles.HistoryTileBackendFactory;
 import org.eclipse.tracecompass.internal.tmf.core.Activator;
 import org.eclipse.tracecompass.internal.tmf.core.statesystem.backends.partial.PartialHistoryBackend;
@@ -66,6 +64,7 @@ import org.eclipse.tracecompass.tmf.core.trace.ITmfTraceKnownSize;
 import org.eclipse.tracecompass.tmf.core.trace.TmfTraceManager;
 import org.eclipse.tracecompass.tmf.core.trace.TmfTraceUtils;
 import org.eclipse.tracecompass.tmf.core.trace.experiment.TmfExperiment;
+import org.eclipse.tracecompass.traceeventlogger.LogUtils;
 import org.eclipse.tracecompass.traceeventlogger.LogUtils.ScopeLog;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -119,9 +118,14 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         PARTIAL,
         /**
          * State system backed with partial history tiles
-         * @since 9.5
+         * @since 9.6
          */
         TILE,
+        /**
+         * State system configured through an environment variable, if it does not find the backend, defaults to FULL
+         * @since 9.6
+         */
+        CONFIGURABLE,
         /**
          * Custom backend on its own. If one uses it then they need to override
          * {@link TmfStateSystemAnalysisModule#getCustomBackend(String, ITmfStateProvider)}
@@ -283,7 +287,9 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         try (ScopeLog log = new ScopeLog(LOGGER, Level.FINE, "StateSystemAnalysis:executing", "id", id)) { //$NON-NLS-1$ //$NON-NLS-2$
             /* Get the state system according to backend */
             StateSystemBackendType backend = getBackendType();
-
+            if (backend == StateSystemBackendType.CONFIGURABLE) {
+                backend = getBackendTypeFromEnv();
+            }
             ITmfTrace trace = getTrace();
             if (trace == null) {
                 // Analysis was cancelled in the meantime
@@ -322,6 +328,7 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
             case CUSTOM:
                 createCustomHistory(id, provider);
                 break;
+            case CONFIGURABLE:
             default:
                 break;
             }
@@ -330,6 +337,20 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
             return false;
         }
         return !mon.isCanceled();
+    }
+
+    private static StateSystemBackendType getBackendTypeFromEnv() {
+        switch (System.getenv("TC_ANALYSIS_BACKEND")) { //$NON-NLS-1$
+        case "TILE": //$NON-NLS-1$
+            return StateSystemBackendType.TILE;
+        case "PARTIAL": //$NON-NLS-1$
+            return StateSystemBackendType.PARTIAL;
+        case "INMEM": //$NON-NLS-1$
+            return StateSystemBackendType.INMEM;
+        case "FULL": //$NON-NLS-1$
+        default:
+            return StateSystemBackendType.FULL;
+        }
     }
 
     /**
@@ -476,7 +497,7 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         if (trace instanceof ITmfTraceKnownSize) {
             nSamples = ((ITmfTraceKnownSize) trace).size() * 100L;
             nSamples = Long.max(nSamples, minimumNSamples);
-            TraceCompassLogUtils.traceInstant(LOGGER, Level.FINEST, "TmfStateSystemAnalysisModule#createPartialHistory", //$NON-NLS-1$
+            LogUtils.traceInstant(LOGGER, Level.FINEST, "TmfStateSystemAnalysisModule#createPartialHistory", //$NON-NLS-1$
                     "size", ((ITmfTraceKnownSize) trace).size()); //$NON-NLS-1$
         }
         long granularity = (endTime - trace.getStartTime().getValue()) / nSamples;
@@ -484,7 +505,7 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
             // Default value for granularity if trace is small
             granularity = 1000;
         }
-        TraceCompassLogUtils.traceInstant(LOGGER, Level.FINE, "TmfStateSystemAnalysisModule#createPartialHistory", //$NON-NLS-1$
+        LogUtils.traceInstant(LOGGER, Level.FINE, "TmfStateSystemAnalysisModule#createPartialHistory", //$NON-NLS-1$
                 "ssid", id + ".partial", "granularity", granularity, "nSamples", nSamples, "trace duration", endTime - trace.getStartTime().getValue()); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
         IStateHistoryBackend partialBackend = new PartialHistoryBackend(id + ".partial", partialProvider, pss, realBackend, granularity, backend); //$NON-NLS-1$
 
@@ -927,11 +948,12 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         Map<@NonNull String, @NonNull String> properties = super.getProperties();
 
         StateSystemBackendType backend = getBackendType();
+        if (backend == StateSystemBackendType.CONFIGURABLE) {
+            backend = getBackendTypeFromEnv();
+        }
         properties.put(NonNullUtils.checkNotNull(Messages.TmfStateSystemAnalysisModule_PropertiesBackend), backend.name());
         switch (backend) {
-        case FULL:
-        case PARTIAL:
-        case TILE:
+        case FULL,PARTIAL,TILE:
             File htFile = getSsFile();
             if (htFile != null) {
                 if (htFile.exists()) {
@@ -941,9 +963,7 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
                 }
             }
             break;
-        case INMEM:
-        case NULL:
-        case CUSTOM:
+        case CUSTOM, INMEM, NULL, CONFIGURABLE:
         default:
             break;
 
@@ -964,9 +984,11 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         } else {
             // State system is closed... delete directly
             StateSystemBackendType backend = getBackendType();
+            if (backend == StateSystemBackendType.CONFIGURABLE) {
+                backend = getBackendTypeFromEnv();
+            }
             switch (backend) {
-            case FULL:
-            case PARTIAL:
+            case FULL,PARTIAL,TILE:
                 File htFile = getSsFile();
                 if ((htFile != null) && (htFile.exists())) {
                     htFile.delete();

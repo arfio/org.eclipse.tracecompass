@@ -61,7 +61,7 @@ public abstract class StateHistoryBackendTestBase {
      * @throws IOException
      *             if an exception occurs
      */
-    protected abstract IStateHistoryBackend getBackendForBuilding(long startTime) throws IOException;
+    protected abstract IStateHistoryBackend getBackendForBuilding(long startTime, long endTime) throws IOException;
 
     /**
      * Gets the backend to be used for querying. The default implementation
@@ -97,7 +97,7 @@ public abstract class StateHistoryBackendTestBase {
             List<ITmfStateInterval> intervals) {
 
         try {
-            IStateHistoryBackend backend = getBackendForBuilding(startTime);
+            IStateHistoryBackend backend = getBackendForBuilding(startTime, endTime);
             insertIntervals(backend, intervals);
             backend.finishedBuilding(Math.max(endTime, backend.getEndTime()));
             return getBackendForQuerying(backend);
@@ -276,7 +276,7 @@ public abstract class StateHistoryBackendTestBase {
         ITmfStateValue customVal = new CustomStateValueStub(10, "a string");
 
         try {
-            IStateHistoryBackend backend = getBackendForBuilding(startTime);
+            IStateHistoryBackend backend = getBackendForBuilding(startTime, startTime + (3 * timeStep));
             assertNotNull(backend);
 
             /* Int interval */
@@ -364,12 +364,12 @@ public abstract class StateHistoryBackendTestBase {
         ITmfStateValue customVal2 = new CustomStateValueStub(Short.MAX_VALUE, "another string");
 
         try {
-            IStateHistoryBackend backend = getBackendForBuilding(startTime);
-            assertNotNull(backend);
-
             long firstEnd = startTime + timeStep;
             long nextStart = firstEnd + 1;
             long endTime = nextStart + timeStep;
+
+            IStateHistoryBackend backend = getBackendForBuilding(startTime, endTime);
+            assertNotNull(backend);
 
             insertIntervals(backend, ImmutableList.of(new TmfStateInterval(startTime, startTime + timeStep, intQuark, INT_VAL1),
                     new TmfStateInterval(startTime, startTime + timeStep, longQuark, LONG_VAL1),
@@ -447,7 +447,7 @@ public abstract class StateHistoryBackendTestBase {
     public void testIntervalBeforeStart() {
         long startTime = 1000;
         try {
-            IStateHistoryBackend backend = getBackendForBuilding(startTime);
+            IStateHistoryBackend backend = getBackendForBuilding(startTime, startTime + 10);
             backend.insertPastState(startTime - 1, startTime + 1, 0, INT_VAL1);
         } catch (IOException e) {
             fail(e.getMessage());
@@ -467,11 +467,12 @@ public abstract class StateHistoryBackendTestBase {
     @Test
     public void testNegativeTimes() throws IOException, TimeRangeException, StateSystemDisposedException {
         long startTime = -1001;
-        IStateHistoryBackend backend = getBackendForBuilding(startTime);
+        long endTime = 210L;
+        IStateHistoryBackend backend = getBackendForBuilding(startTime, endTime);
         for (long t = startTime; t <= 200; t += 10) {
             backend.insertPastState(t, t + 10, 0, t);
         }
-        backend.finishedBuilding(210);
+        backend.finishedBuilding(endTime);
 
         IStateHistoryBackend backendQuery = getBackendForQuerying(backend);
         ITmfStateInterval poisonInterval = backendQuery.doSingularQuery(-1, 0);
@@ -479,4 +480,37 @@ public abstract class StateHistoryBackendTestBase {
         assertEquals(-11L, poisonInterval.getValue());
     }
 
+    /**
+     * Test querying out of range returns empty
+     *
+     * @throws IOException
+     *             if an IO exception occurred creating the backend.
+     * @throws StateSystemDisposedException
+     *             if the state system was disposed
+     * @throws TimeRangeException
+     *             if the time was incorrect.
+     */
+    @Test(expected = TimeRangeException.class)
+    public void testQueryingOutOfRange() throws IOException, TimeRangeException, StateSystemDisposedException {
+        long startTime = 1000;
+        IStateHistoryBackend backend = getBackendForBuilding(startTime, startTime + 10);
+        backend.insertPastState(startTime, startTime + 10, 0, INT_VAL1);
+        IStateHistoryBackend backendQuery = getBackendForQuerying(backend);
+        backendQuery.doSingularQuery(startTime - 10, 0);
+    }
+
+    /**
+     * Test querying out of range returns empty
+     *
+     * @throws IOException
+     *             if an IO exception occurred creating the backend.
+     * @throws TimeRangeException
+     *             if the time was incorrect.
+     */
+    @Test(expected = TimeRangeException.class)
+    public void testInsertingInvalidState() throws IOException, TimeRangeException {
+        long startTime = 1000;
+        IStateHistoryBackend backend = getBackendForBuilding(startTime, startTime + 10);
+        backend.insertPastState(startTime, startTime - 10, 0, INT_VAL1);
+    }
 }

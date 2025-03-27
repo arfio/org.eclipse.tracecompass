@@ -73,7 +73,7 @@ public class TmfStatisticsTotalsModule extends TmfStateSystemAnalysisModule {
 
     @Override
     protected StateSystemBackendType getBackendType() {
-        return StateSystemBackendType.PARTIAL;
+        return StateSystemBackendType.TILE;
     }
 
     @Override

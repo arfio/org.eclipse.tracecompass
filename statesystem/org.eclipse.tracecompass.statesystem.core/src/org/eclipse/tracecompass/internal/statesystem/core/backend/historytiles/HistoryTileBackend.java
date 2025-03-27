@@ -16,9 +16,7 @@ import java.util.logging.Logger;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLog;
-import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils;
-import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.FlowScopeLog;
-import org.eclipse.tracecompass.common.core.log.TraceCompassLogUtils.FlowScopeLogBuilder;
+import org.eclipse.tracecompass.internal.datastore.core.condition.ContinuousTimeRangeCondition;
 import org.eclipse.tracecompass.internal.provisional.datastore.core.condition.IntegerRangeCondition;
 import org.eclipse.tracecompass.internal.provisional.datastore.core.condition.TimeRangeCondition;
 import org.eclipse.tracecompass.internal.statesystem.core.Activator;
@@ -26,6 +24,9 @@ import org.eclipse.tracecompass.statesystem.core.backend.IStateHistoryBackend;
 import org.eclipse.tracecompass.statesystem.core.exceptions.StateSystemDisposedException;
 import org.eclipse.tracecompass.statesystem.core.exceptions.TimeRangeException;
 import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
+import org.eclipse.tracecompass.traceeventlogger.LogUtils;
+import org.eclipse.tracecompass.traceeventlogger.LogUtils.FlowScopeLog;
+import org.eclipse.tracecompass.traceeventlogger.LogUtils.FlowScopeLogBuilder;
 
 import com.google.common.collect.Iterables;
 
@@ -35,6 +36,9 @@ import com.google.common.collect.Iterables;
  */
 public class HistoryTileBackend implements IStateHistoryBackend {
 
+    // TOREMOVE-------
+    private List<Integer> fIntervalStatistics = new ArrayList<>();
+    // --------
     private static final @NonNull Logger LOGGER = TraceCompassLog.getLogger(HistoryTileBackend.class);
     private HistoryTileConfig fConfig;
     private final @NonNull String fSsid;
@@ -113,6 +117,23 @@ public class HistoryTileBackend implements IStateHistoryBackend {
     @Override
     public void insertPastState(long stateStartTime, long stateEndTime,
             int quark, Object value) throws TimeRangeException {
+        // TO REMOVE----------
+        long stateDuration = stateEndTime - stateStartTime;
+        int sizeIndex = (int) Math.log10(stateDuration);
+        if (sizeIndex < 0) {
+            sizeIndex = 0;
+        }
+        while (sizeIndex >= fIntervalStatistics.size()) {
+            fIntervalStatistics.add(fIntervalStatistics.size(), 0);
+        }
+        fIntervalStatistics.set(sizeIndex, fIntervalStatistics.get(sizeIndex) + 1);
+        // --------
+        if (stateStartTime > stateEndTime) {
+            throw new TimeRangeException("Start:" + stateStartTime + ", End:" + stateEndTime); //$NON-NLS-1$ //$NON-NLS-2$
+        } else if (stateStartTime < fConfig.getStart()) {
+            throw new TimeRangeException("Interval Start:" + stateStartTime + ", Config Start:" + fConfig.getStart()); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+
         fEnd = stateEndTime;
         for (int i = 0; i < fConfig.getResolutions().length; i++) {
             if (fCachedTiles.size() < i + 1) {
@@ -136,8 +157,9 @@ public class HistoryTileBackend implements IStateHistoryBackend {
     @Override
     public void finishedBuilding(long endTime) throws TimeRangeException {
         fEnd = endTime;
-        fFinishedBuilding = true;
         fCachedTiles.forEach(this::writeTileToDisk);
+        // Finished building after writing all the tiles to avoid setting a tile in the cache at the same time.
+        fFinishedBuilding = true;
         fConfig.writeHeader(fWriteChannel);
     }
 
@@ -161,7 +183,7 @@ public class HistoryTileBackend implements IStateHistoryBackend {
         // write tile to disk
         try (FlowScopeLog next = new FlowScopeLogBuilder(LOGGER, Level.FINER, "HistoryTileBackend:writeTileToDisk").build()) { //$NON-NLS-1$
             long position = fWriteChannel.position();
-            tile.writeSelf(fWriteChannel, fConfig.isEveryIntervalContiguous());
+            tile.writeSelf(fWriteChannel, fConfig.isEveryIntervalContiguous(), fSsid);
             // add tile to config
             fConfig.addTile(tile, position);
         } catch (IOException e) {
@@ -172,23 +194,27 @@ public class HistoryTileBackend implements IStateHistoryBackend {
 
     @Override
     public FileInputStream supplyAttributeTreeReader() {
-        // TODO: return tree reader
-        System.out.println("supplyAttributeTreeReader()"); //$NON-NLS-1$
-        return null;
+        // seek to end of file.
+        try {
+            fReadChannel.position(supplyAttributeTreeWriterFilePosition());
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        System.out.println("AttributeTree  reader supplied");
+        return fFileInputStream;
     }
 
     @Override
     public File supplyAttributeTreeWriterFile() {
-        // TODO: return tree writer
-        System.out.println("supplyAttributeTreeWriterFile()"); //$NON-NLS-1$
-        return null;
+        System.out.println("AttributeTreeWrite writer supplied");
+        return fConfig.getStateFile();
     }
 
     @Override
     public long supplyAttributeTreeWriterFilePosition() {
-        // TODO: return position to write tree
-        System.out.println("supplyAttributeTreeWriterFilePosition()"); //$NON-NLS-1$
-        return 0;
+        System.out.println("AttributeTreeWrite position supplied");
+        return fConfig.getStartTreeSection(fReadChannel);
     }
 
     @Override
@@ -210,16 +236,23 @@ public class HistoryTileBackend implements IStateHistoryBackend {
             Activator.getDefault().logError(e.getMessage(), e);
         }
         if (fFinishedBuilding) {
-            TraceCompassLogUtils.traceInstant(LOGGER, Level.FINE, "HistoryTreeBackend:ClosingFile", "size", fConfig.getStateFile().length()); //$NON-NLS-1$ //$NON-NLS-2$
-            TraceCompassLogUtils.traceObjectDestruction(LOGGER, Level.FINER, this);
+            LogUtils.traceInstant(LOGGER, Level.FINE, "HistoryTreeBackend:ClosingFile", "size", fConfig.getStateFile().length()); //$NON-NLS-1$ //$NON-NLS-2$
+            LogUtils.traceObjectDestruction(LOGGER, Level.FINER, this);
+            // TOREMOVE
+            LogUtils.traceInstant(LOGGER, Level.FINE, "HistoryTreeBackend:ClosingFile", "ssid", fSsid, "statistics", fIntervalStatistics); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         } else {
             fConfig.getStateFile().delete();
         }
     }
 
-
     private HistoryTile readTile(int resolutionIndex, long time) {
-        int tileIndex = (int) Math.floorDiv(time - fConfig.getStart(), fConfig.getResolutions()[resolutionIndex] * fConfig.getNPixels());
+        int tileIndex = 0;
+        if (resolutionIndex > 0) {
+            tileIndex = (int) Math.floorDiv(time - 1 - fConfig.getStart(), fConfig.getResolutions()[resolutionIndex] * fConfig.getNPixels());
+            if (tileIndex < 0) {
+                tileIndex = 0;
+            }
+        }
         if (resolutionIndex < fCachedTiles.size()) {
             HistoryTile tile = fCachedTiles.get(resolutionIndex);
             if (time >= tile.getStart() && time < tile.getEnd()) {
@@ -244,6 +277,12 @@ public class HistoryTileBackend implements IStateHistoryBackend {
 
     @Override
     public void doQuery(@NonNull List<@Nullable ITmfStateInterval> currentStateInfo, long t) throws TimeRangeException, StateSystemDisposedException {
+        for (int i = 0; i < currentStateInfo.size(); i++) {
+            ITmfStateInterval interval = currentStateInfo.get(i);
+            if (interval != null && !interval.intersects(t)) {
+                currentStateInfo.set(i, null);
+            }
+        }
         int resolutionIndex = fConfig.getResolutions().length - 1;
         HistoryTile tile = readTile(resolutionIndex, t);
         tile.doQuery(currentStateInfo, t);
@@ -266,6 +305,10 @@ public class HistoryTileBackend implements IStateHistoryBackend {
 
     @Override
     public ITmfStateInterval doSingularQuery(long t, int attributeQuark) throws TimeRangeException, StateSystemDisposedException {
+        if (t < fConfig.getStart() || t > fConfig.getEnd()) {
+            throw new TimeRangeException(String.format("%s Time:%d, Start:%d, End:%d", //$NON-NLS-1$
+                    fSsid, t, fConfig.getStart(), fConfig.getEnd()));
+        }
         int resolutionIndex = fConfig.getResolutions().length - 1;
         HistoryTile tile = readTile(resolutionIndex, t);
         ITmfStateInterval interval = tile.doSingularQuery(t, attributeQuark);
@@ -287,6 +330,9 @@ public class HistoryTileBackend implements IStateHistoryBackend {
     @Override
     public Iterable<@NonNull ITmfStateInterval> query2D(IntegerRangeCondition quarks, TimeRangeCondition times) {
         long[] timeArray = times.getTimeArray();
+        if (times instanceof ContinuousTimeRangeCondition) {
+            return query2DContinuous(quarks, times);
+        }
         if (timeArray.length < 2 || timeArray[0] >= fEnd) {
             return Collections.emptyList();
         }
@@ -315,7 +361,8 @@ public class HistoryTileBackend implements IStateHistoryBackend {
             int nAttributes = fCachedTiles.get(0).getNumberAttributes();
             List<@Nullable ITmfStateInterval> currentStateInfo = new ArrayList<>(Collections.nCopies(nAttributes, null));
             doQuery(currentStateInfo, times.max());
-            // add intervals to iterable for all intervals that are in the returned integerrangecondition
+            // add intervals to iterable for all intervals that are in the
+            // returned integerrangecondition
             List<ITmfStateInterval> missingIntervals = new ArrayList<>();
             for (int missingIntervalQuark : missingIntervalQuarks) {
                 if (missingIntervalQuark < currentStateInfo.size() && currentStateInfo.get(missingIntervalQuark) != null) {
@@ -324,6 +371,53 @@ public class HistoryTileBackend implements IStateHistoryBackend {
             }
             result = Iterables.concat(result, missingIntervals);
         } catch (TimeRangeException | StateSystemDisposedException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    private Iterable<@NonNull ITmfStateInterval> query2DContinuous(IntegerRangeCondition quarks, TimeRangeCondition times) {
+        Iterable<@NonNull ITmfStateInterval> result = Collections.emptyList();
+        int resolutionIndex = fConfig.getResolutions().length - 1;
+        try (FlowScopeLog next = new FlowScopeLogBuilder(LOGGER, Level.FINER, "HistoryTileBackend:initQuery2D").build()) { //$NON-NLS-1$
+            long timeCursor = times.min();
+
+            int nAttributes = quarks.max() + 1;
+            List<@Nullable ITmfStateInterval> currentStateInfo = new ArrayList<>(Collections.nCopies(nAttributes, null));
+            doQuery(currentStateInfo, times.max());
+            // Get relevant intervals at end time.
+            List<@NonNull ITmfStateInterval> endIntervals = new ArrayList<>();
+            for (int quark: quarks.getIntegerArray()) {
+                ITmfStateInterval interval = currentStateInfo.get(quark);
+                if (interval != null) {
+                    timeCursor = Long.max(interval.getStartTime(), timeCursor);
+                    // if the tile is the same, this interval will be added at the second step
+                    int tileIndexRequestEnd = (int) Math.floorDiv(times.max() - 1 - fConfig.getStart(), fConfig.getResolutions()[resolutionIndex] * fConfig.getNPixels());
+                    int tileIndexInterval = (int) Math.floorDiv(interval.getEndTime() - 1 - fConfig.getStart(), fConfig.getResolutions()[resolutionIndex] * fConfig.getNPixels());
+                    if (tileIndexRequestEnd != tileIndexInterval) {
+                        endIntervals.add(interval);
+                    }
+                }
+            }
+            // Go from the end to the start time, getting all the required intervals.
+            result = Iterables.concat(result, endIntervals);
+            while (timeCursor >= times.min()) {
+                // Read farthest previous tile
+                HistoryTile tile = readTile(resolutionIndex, timeCursor);
+                Iterable<@NonNull ITmfStateInterval> intervals = tile.query2D(quarks, times);
+                // Go to end of smallest interval for all the quarks
+                timeCursor = times.min();
+                for (ITmfStateInterval interval : intervals) {
+                    timeCursor = Long.max(interval.getStartTime(), timeCursor);
+                }
+                timeCursor = Long.min(tile.getStart() - 1, timeCursor);
+                result = Iterables.concat(result, intervals);
+            }
+            return result;
+        } catch (TimeRangeException e) {
+            e.printStackTrace();
+        } catch (StateSystemDisposedException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         return result;

@@ -39,7 +39,7 @@ public class ThreadedHistoryTreeBackendTest extends HistoryTreeBackendTest {
     }
 
     @Override
-    protected IStateHistoryBackend getBackendForBuilding(long startTime) throws IOException {
+    protected IStateHistoryBackend getBackendForBuilding(long startTime, long endTime) throws IOException {
         File historyTreeFile = File.createTempFile("ThreadedHistoryTreeBackendTest", ".ht");
         fHistoryTreeFiles.add(historyTreeFile);
         ThreadedHistoryTreeBackend backend = new ThreadedHistoryTreeBackend(SSID, historyTreeFile, PROVIDER_VERSION, startTime, QUEUE_SIZE, fBlockSize, fMaxChildren);

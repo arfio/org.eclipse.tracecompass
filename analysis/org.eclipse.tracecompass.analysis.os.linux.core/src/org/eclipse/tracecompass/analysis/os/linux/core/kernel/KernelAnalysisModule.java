@@ -91,6 +91,11 @@ public class KernelAnalysisModule extends TmfStateSystemAnalysisModule {
         return getOrCreateStateProvider();
     }
 
+    @Override
+    protected StateSystemBackendType getBackendType() {
+        return StateSystemBackendType.CONFIGURABLE;
+    }
+
     /**
      * @since 6.0
      */

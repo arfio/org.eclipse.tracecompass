@@ -84,7 +84,7 @@ public class InMemoryBackendTest extends StateHistoryBackendTestBase {
     }
 
     @Override
-    protected IStateHistoryBackend getBackendForBuilding(long startTime) {
+    protected IStateHistoryBackend getBackendForBuilding(long startTime, long endTime) {
         return StateHistoryBackendFactory.createInMemoryBackend(SSID, startTime);
     }
 

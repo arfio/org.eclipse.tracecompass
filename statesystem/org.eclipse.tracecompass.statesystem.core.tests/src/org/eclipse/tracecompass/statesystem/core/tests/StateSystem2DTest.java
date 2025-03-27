@@ -18,6 +18,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -26,6 +27,7 @@ import java.util.Set;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.tracecompass.common.core.NonNullUtils;
+import org.eclipse.tracecompass.internal.statesystem.core.backend.historytiles.HistoryTileBackendFactory;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystem;
 import org.eclipse.tracecompass.statesystem.core.ITmfStateSystemBuilder;
 import org.eclipse.tracecompass.statesystem.core.StateSystemFactory;
@@ -36,9 +38,12 @@ import org.eclipse.tracecompass.statesystem.core.exceptions.AttributeNotFoundExc
 import org.eclipse.tracecompass.statesystem.core.exceptions.StateSystemDisposedException;
 import org.eclipse.tracecompass.statesystem.core.exceptions.TimeRangeException;
 import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.AfterParam;
+import org.junit.runners.Parameterized.BeforeParam;
+import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -51,7 +56,21 @@ import com.google.common.collect.TreeMultimap;
  *
  * @author Loïc Prieur-Drevon
  */
+@RunWith(Parameterized.class)
 public class StateSystem2DTest {
+
+    @Parameters(name = "Input State system = {index}")
+    public static Iterable<Object[]> data() throws IOException {
+        IStateHistoryBackend tileBackend = HistoryTileBackendFactory.createHistoryTreeBackendNewFile("test", START_TIME, 200L, 0,
+                NonNullUtils.checkNotNull(File.createTempFile("2DtestTile", "ht")), true);
+        ITmfStateSystemBuilder tileStateSystem = StateSystemFactory.newStateSystem(NonNullUtils.checkNotNull(tileBackend));
+
+        IStateHistoryBackend htBackend = StateHistoryBackendFactory.createHistoryTreeBackendNewFile("test",
+                NonNullUtils.checkNotNull(File.createTempFile("2DtestHt", "ht")), 0, START_TIME, 0);
+        ITmfStateSystemBuilder htStateSystem = StateSystemFactory.newStateSystem(NonNullUtils.checkNotNull(htBackend));
+
+        return Arrays.asList(new Object[][] {{ htStateSystem }, { tileStateSystem }});
+    }
 
     private static final long START_TIME = 50L;
     private static final @NonNull String STRING_ATTRIBUTE = "String";
@@ -59,40 +78,38 @@ public class StateSystem2DTest {
 
     private ITmfStateSystemBuilder fStateSystem;
 
+    public StateSystem2DTest(ITmfStateSystemBuilder stateSystem) throws IOException {
+        fStateSystem = stateSystem;
+    }
+
     /**
-     * Build a small state history tree
-     *
-     * @throws IOException
-     *             If the state system file could not be created
+     * Set-up
      */
-    @Before
-    public void setupStateSystem() throws IOException {
-        IStateHistoryBackend backend = StateHistoryBackendFactory.createHistoryTreeBackendNewFile("test",
-                NonNullUtils.checkNotNull(File.createTempFile("2Dtest", "ht")), 0, START_TIME, 0);
-        fStateSystem = StateSystemFactory.newStateSystem(NonNullUtils.checkNotNull(backend));
-        int stringQuark = fStateSystem.getQuarkAbsoluteAndAdd(STRING_ATTRIBUTE);
-        int integerQuark = fStateSystem.getQuarkAbsoluteAndAdd(INTEGER_ATTRIBUTE);
+    @BeforeParam
+    public static void setUp(ITmfStateSystemBuilder stateSystem) {
+        int stringQuark = stateSystem.getQuarkAbsoluteAndAdd(STRING_ATTRIBUTE);
+        int integerQuark = stateSystem.getQuarkAbsoluteAndAdd(INTEGER_ATTRIBUTE);
 
-        fStateSystem.modifyAttribute(60L, "String1", stringQuark);
-        fStateSystem.modifyAttribute(70L, 0, integerQuark);
-        fStateSystem.modifyAttribute(80L, 1, integerQuark);
-        fStateSystem.modifyAttribute(90L, "String2", stringQuark);
-        fStateSystem.modifyAttribute(100L, 2, integerQuark);
-        fStateSystem.modifyAttribute(110L, 3, integerQuark);
-        fStateSystem.modifyAttribute(130L, "String3", stringQuark);
-        fStateSystem.modifyAttribute(140L, "String4", stringQuark);
-        fStateSystem.modifyAttribute(160L, 4, integerQuark);
+        stateSystem.modifyAttribute(60L, "String1", stringQuark);
+        stateSystem.modifyAttribute(70L, 0, integerQuark);
+        stateSystem.modifyAttribute(80L, 1, integerQuark);
+        stateSystem.modifyAttribute(90L, "String2", stringQuark);
+        stateSystem.modifyAttribute(100L, 2, integerQuark);
+        stateSystem.modifyAttribute(110L, 3, integerQuark);
+        stateSystem.modifyAttribute(130L, "String3", stringQuark);
+        stateSystem.modifyAttribute(140L, "String4", stringQuark);
+        stateSystem.modifyAttribute(160L, 4, integerQuark);
 
-        fStateSystem.closeHistory(200L);
+        stateSystem.closeHistory(200L);
     }
 
     /**
      * Clean-up
      */
-    @After
-    public void tearDown() {
-        fStateSystem.dispose();
-        fStateSystem.removeFiles();
+    @AfterParam
+    public static void tearDown(ITmfStateSystemBuilder stateSystem) {
+        stateSystem.dispose();
+        stateSystem.removeFiles();
     }
 
     private static void testContinuous(Iterable<ITmfStateInterval> iterable, Collection<Integer> quarks, long start, long end, int totalCount) {
@@ -127,14 +144,15 @@ public class StateSystem2DTest {
      * Test the continuous 2D query method.
      *
      * @throws AttributeNotFoundException
-     *             if the requested attribute simply did not exist in the system.
+     *             if the requested attribute simply did not exist in the
+     *             system.
      * @throws StateSystemDisposedException
      *             If the query is sent after the state system has been disposed
      * @throws TimeRangeException
      *             If the smallest time is before the state system start time.
      * @throws IndexOutOfBoundsException
-     *             If the smallest attribute is <0 or if the largest is >= to the
-     *             number of attributes.
+     *             If the smallest attribute is <0 or if the largest is >= to
+     *             the number of attributes.
      */
     @Test
     public void testContinuous2DQuery() throws AttributeNotFoundException, IndexOutOfBoundsException, TimeRangeException, StateSystemDisposedException {
@@ -179,14 +197,15 @@ public class StateSystem2DTest {
      * Test the discrete 2D query method.
      *
      * @throws AttributeNotFoundException
-     *             if the requested attribute simply did not exist in the system.
+     *             if the requested attribute simply did not exist in the
+     *             system.
      * @throws StateSystemDisposedException
      *             If the query is sent after the state system has been disposed
      * @throws TimeRangeException
      *             If the smallest time is before the state system start time.
      * @throws IndexOutOfBoundsException
-     *             If the smallest attribute is <0 or if the largest is >= to the
-     *             number of attributes.
+     *             If the smallest attribute is <0 or if the largest is >= to
+     *             the number of attributes.
      */
     @Test
     public void testDiscrete2DQuery() throws AttributeNotFoundException,

@@ -1,6 +1,8 @@
 package org.eclipse.tracecompass.internal.statesystem.core.backend.historytiles;
 
 import java.io.IOException;
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
@@ -12,13 +14,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.tracecompass.common.core.log.TraceCompassLog;
 import org.eclipse.tracecompass.datastore.core.encoding.HTVarInt;
 import org.eclipse.tracecompass.internal.provisional.datastore.core.condition.IntegerRangeCondition;
 import org.eclipse.tracecompass.internal.provisional.datastore.core.condition.TimeRangeCondition;
 import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
+import org.eclipse.tracecompass.traceeventlogger.LogUtils;
 
 /**
  * @since 5.4
@@ -26,10 +32,13 @@ import org.eclipse.tracecompass.statesystem.core.interval.ITmfStateInterval;
  */
 public class HistoryTile {
 
+    private static final @NonNull Logger LOGGER = TraceCompassLog.getLogger(HistoryTile.class);
     private Map<Integer, List<@NonNull ITmfStateInterval>> fIntervalMap = new HashMap<>();
     private long fResolution;
     private long fStart;
     private long fEnd;
+    private int fDuplicatedSize = 0;
+    private int fDuplicatedIntervals = 0;
     private boolean fFinished = false;
     private boolean fIgnoreResolutionCutOff = false;
     private int fSize = 0;
@@ -54,7 +63,9 @@ public class HistoryTile {
         fFinished = true;
     }
 
-    public void writeSelf(FileChannel channel, boolean isEveryIntervalContiguous) {
+    public void writeSelf(FileChannel channel, boolean isEveryIntervalContiguous, String ssid) {
+        // to remove 1 line
+        LogUtils.traceInstant(LOGGER, Level.FINE, "HistoryTile:writeSelf", "ssid", ssid, "duplicatedDataSize", fDuplicatedSize, "duplicatedIntevals", fDuplicatedIntervals); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
         fFinished = true;
         try {
             int nAttributes = fIntervalMap.size();
@@ -87,19 +98,14 @@ public class HistoryTile {
             if (res != tileSize) {
                 throw new IllegalStateException("Wrong size of block written: Actual: " + res + ", Expected: " + tileSize); //$NON-NLS-1$ //$NON-NLS-2$
             }
-        } catch (IOException e) {
+        } catch (IOException | BufferOverflowException e) {
             e.printStackTrace();
         }
     }
 
-    public static HistoryTile readTile(FileChannel channel, long position, int tileSize, long resolution, long start, long end, boolean isEveryIntervalContiguous) {
+    public static HistoryTile readTile(ByteBuffer buffer, long resolution, long start, long end, boolean isEveryIntervalContiguous) {
         Map<Integer, List<@NonNull ITmfStateInterval>> intervalMap = new HashMap<>();
-        ByteBuffer buffer = ByteBuffer.allocate(tileSize);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        buffer.clear();
         try {
-            channel.position(position);
-            channel.read(buffer);
             buffer.flip();
             buffer.getInt(); // skip tileSize
             int nAttributes = buffer.getInt();
@@ -124,7 +130,7 @@ public class HistoryTile {
 
                 intervalMap.put(attributeQuark, intervalList);
             }
-        } catch (IOException e) {
+        } catch (BufferUnderflowException | IOException e) {
             e.printStackTrace();
         }
         return new HistoryTile(resolution, start, end, intervalMap);
@@ -135,7 +141,7 @@ public class HistoryTile {
         for (Entry<Integer, List<@NonNull ITmfStateInterval>> entry : fIntervalMap.entrySet()) {
             size += entry.getValue().size();
         }
-        return "resolution: " + fResolution + ", interval map size: " + size;
+        return "resolution: " + fResolution + ", interval map size: " + size; //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     public boolean isFinished() {
@@ -239,6 +245,8 @@ public class HistoryTile {
                     // As the start time stays the same, no need to distinguish
                     // between contiguous vs non contiguous intervals.
                     fSize += HTVarInt.getEncodedLengthLong(stateEndTime - lastInterval.getStartTime()) - HTVarInt.getEncodedLengthLong(lastInterval.getEndTime() - lastInterval.getStartTime());
+                    // to remove 1line
+                    fDuplicatedSize += HTVarInt.getEncodedLengthLong(stateEndTime - lastInterval.getStartTime()) - HTVarInt.getEncodedLengthLong(lastInterval.getEndTime() - lastInterval.getStartTime());
                     lastInterval.setEndTime(stateEndTime);
                     return;
                 }
@@ -246,6 +254,11 @@ public class HistoryTile {
             TileInterval interval = new TileInterval(stateStartTime, stateEndTime, quark, value);
             intervalList.add(interval);
             fSize += interval.getSizeOnDisk(isEveryIntervalContiguous);
+            //to remove 3lines
+            if (!fIgnoreResolutionCutOff) {
+                fDuplicatedSize += interval.getSizeOnDisk(isEveryIntervalContiguous);
+                fDuplicatedIntervals += 1;
+            }
         } finally {
             fRwl.writeLock().unlock();
         }
