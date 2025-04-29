@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,28 +42,21 @@ public class HistoryTileConfig {
     private int fProviderVersion;
     private int fNPixels;
 
-    private List<long[]> fTilePositions;
+    private List<List<Long>> fTilePositions;
 
-    HistoryTileConfig(File stateFile, int providerVersion, long startTime, int nPixels, boolean isEveryIntervalContiguous) {
+    HistoryTileConfig(File stateFile, int providerVersion, long startTime, int nPixels, long minResolution, boolean isEveryIntervalContiguous) {
         fIsEveryIntervalContiguous = isEveryIntervalContiguous;
         fStateFile = stateFile;
         fProviderVersion = providerVersion;
         fStart = startTime;
         fNPixels = nPixels;
-        fResolutions = new ArrayList<>();
-        fTilePositions = new ArrayList<>();
+        fResolutions = new ArrayList<>(Arrays.asList(minResolution)) ;
+        fTilePositions = new ArrayList<>(Arrays.asList(new ArrayList<>()));
     }
 
     HistoryTileConfig(File existingStateFile, int providerVersion) {
         fStateFile = existingStateFile;
         fProviderVersion = providerVersion;
-    }
-
-    public int calculateNumberOfTiles(int resolutionIndex) {
-        if (!fResolutions.isEmpty()) {
-            return (int) Math.ceil((fResolutions.get(fResolutions.size() - 1) * fNPixels) / (double) (fResolutions.get(resolutionIndex) * fNPixels));
-        }
-        return 0;
     }
 
     public long getStartTileSection() {
@@ -75,8 +69,8 @@ public class HistoryTileConfig {
 
     public long getStartConfigSection(FileChannel channel) {
         long lastTilePosition = 0;
-        for (long[] tilePositions: fTilePositions) {
-            lastTilePosition = Long.max(tilePositions[tilePositions.length - 1], lastTilePosition);
+        for (List<Long> tilePositions: fTilePositions) {
+            lastTilePosition = Long.max(tilePositions.get(tilePositions.size() - 1), lastTilePosition);
         }
         return lastTilePosition + getTileSize(channel, lastTilePosition);
     }
@@ -86,7 +80,10 @@ public class HistoryTileConfig {
         int tileIndex = (int) ((start - fStart) / (tile.getResolution() * fNPixels));
         for (int i = 0; i < fResolutions.size(); i++) {
             if (fResolutions.get(i) == tile.getResolution()) {
-                fTilePositions.get(i)[tileIndex] = tilePosition;
+                for (int j = fTilePositions.get(i).size(); j <= tileIndex; j++) {
+                    fTilePositions.get(i).add(0L);
+                }
+                fTilePositions.get(i).set(tileIndex, tilePosition);
             }
         }
     }
@@ -96,7 +93,7 @@ public class HistoryTileConfig {
                 "HistoryTileConfig:readTile").build()) { //$NON-NLS-1$
             long start = fStart + fResolutions.get(resolutionIndex) * fNPixels * tileIndex;
             long end = start + fResolutions.get(resolutionIndex) * fNPixels;
-            long tilePosition = fTilePositions.get(resolutionIndex)[tileIndex];
+            long tilePosition = fTilePositions.get(resolutionIndex).get(tileIndex);
 
             if (tilePosition == 0) {
                 return new HistoryTile(fResolutions.get(resolutionIndex), start, end);
@@ -135,7 +132,7 @@ public class HistoryTileConfig {
         return buffer.getInt();
     }
 
-    public void writeConfig(FileChannel channel) {
+    public void writeConfig(FileChannel writeChannel, FileChannel readChannel) {
         int staticHeaderSize = STATIC_HEADER_SIZE;
         ByteBuffer staticHeaderBuffer = ByteBuffer.allocate(staticHeaderSize);
         staticHeaderBuffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -144,10 +141,10 @@ public class HistoryTileConfig {
         ByteBuffer configBuffer = ByteBuffer.allocate(configSize);
         configBuffer.order(ByteOrder.LITTLE_ENDIAN);
         configBuffer.clear();
-        long configPosition = getStartConfigSection(channel);
+        long configPosition = getStartConfigSection(readChannel);
         /* Save the config of the tree to the header of the file */
         try {
-            channel.position(0);
+            writeChannel.position(0);
 
             /* Static header portion */
             staticHeaderBuffer.putInt(HISTORY_FILE_MAGIC_NUMBER);
@@ -158,24 +155,24 @@ public class HistoryTileConfig {
             staticHeaderBuffer.put((byte) (fIsEveryIntervalContiguous ? 1 : 0));
 
             staticHeaderBuffer.flip();
-            channel.write(staticHeaderBuffer);
+            writeChannel.write(staticHeaderBuffer);
 
             /* Config header portion */
             configBuffer.putInt(fNPixels);
             configBuffer.putInt(fResolutions.size());
 
-            if (fResolutions.size() > 0) {
+            if (!fResolutions.isEmpty()) {
                 for (int i = 0; i < fResolutions.size(); i++) {
                     configBuffer.putLong(fResolutions.get(i));
-                    configBuffer.putInt(fTilePositions.get(i).length);
-                    for (int j = 0; j < fTilePositions.get(i).length; j++) {
-                        configBuffer.putLong(fTilePositions.get(i)[j]);
+                    configBuffer.putInt(fTilePositions.get(i).size());
+                    for (int j = 0; j < fTilePositions.get(i).size(); j++) {
+                        configBuffer.putLong(fTilePositions.get(i).get(j));
                     }
                 }
             }
             configBuffer.flip();
-            channel.position(configPosition);
-            int res = channel.write(configBuffer);
+            writeChannel.position(configPosition);
+            int res = writeChannel.write(configBuffer);
 
             if (res > configSize) {
                 throw new IOException("Config header size = " + configBuffer + " but wrote " + res); //$NON-NLS-1$ //$NON-NLS-2$
@@ -231,8 +228,8 @@ public class HistoryTileConfig {
         /* number of resolutions * (resolution + number of tiles) */
         headerSize += (Long.BYTES + Integer.BYTES) * fResolutions.size();
         /* number of tiles * tile start position */
-        for (int i = 0; i < fResolutions.size(); i++) {
-            headerSize += calculateNumberOfTiles(i) * Long.BYTES;
+        for (List<Long> tilePositions : fTilePositions) {
+            headerSize += tilePositions.size() * Long.BYTES;
         }
         return headerSize;
     }
@@ -245,6 +242,11 @@ public class HistoryTileConfig {
         return fResolutions;
     }
 
+    public void addResolution(Long resolution) {
+        fResolutions.add(resolution);
+        fTilePositions.add(new ArrayList<>());
+    }
+
     public long getStart() {
         return fStart;
     }
@@ -254,10 +256,10 @@ public class HistoryTileConfig {
     }
 
     public long getEnd() {
-        if (fResolutions.size() > 0) {
-            return fStart + fResolutions.get(0) * fNPixels;
+        if (fResolutions.isEmpty()) {
+            return 0L;
         }
-        return 0L;
+        return fStart + fResolutions.get(0) * fNPixels;
     }
 
     public File getStateFile() {

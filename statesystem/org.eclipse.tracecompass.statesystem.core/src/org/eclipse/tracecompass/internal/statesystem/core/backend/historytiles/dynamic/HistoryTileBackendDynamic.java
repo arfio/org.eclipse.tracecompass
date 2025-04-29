@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,9 +41,10 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
     private List<Integer> fIntervalStatistics = new ArrayList<>();
     // --------
     private static final @NonNull Logger LOGGER = TraceCompassLog.getLogger(HistoryTileBackendDynamic.class);
+    private static final int REDUCTION_FACTOR = 4;
+
     private HistoryTileConfig fConfig;
     private final @NonNull String fSsid;
-    private final long fMinTileSize;
     private long fEnd;
     private boolean fFinishedBuilding = false;
     private List<HistoryTile> fCachedTiles;
@@ -53,12 +55,13 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
     private final FileChannel fWriteChannel;
 
     public HistoryTileBackendDynamic(String ssid, File newStateFile, int providerVersion,
-            long startTime, long minTileSize, int nPixels, boolean isEveryIntervalContiguous) throws IOException {
-        fConfig = new HistoryTileConfig(newStateFile, providerVersion, startTime, nPixels, isEveryIntervalContiguous);
+            long startTime, long minResolution, int nPixels, boolean isEveryIntervalContiguous) throws IOException {
+        fConfig = new HistoryTileConfig(newStateFile, providerVersion, startTime, nPixels, minResolution, isEveryIntervalContiguous);
         fSsid = ssid;
-        fMinTileSize = minTileSize;
         fEnd = startTime;
         fCachedTiles = new ArrayList<>(fConfig.getResolutions().size());
+        long endTimeTile = startTime + fConfig.getNPixels() * fConfig.getResolutions().get(0);
+        fCachedTiles.add(new HistoryTile(fConfig.getResolutions().get(0), startTime, endTimeTile, fConfig.getNPixels(), true));
 
         if (newStateFile.exists()) {
             Files.delete(newStateFile.toPath());
@@ -84,7 +87,6 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
     public HistoryTileBackendDynamic(String ssid, File existingStateFile, int providerVersion) throws IOException {
         fConfig = new HistoryTileConfig(existingStateFile, providerVersion);
         fSsid = ssid;
-        fMinTileSize = fConfig.getResolutions().get(0);
         fEnd = fConfig.getEnd();
         fCachedTiles = new ArrayList<>(fConfig.getResolutions().size());
         fFileInputStream = new FileInputStream(existingStateFile);
@@ -137,21 +139,36 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
         }
 
         fEnd = stateEndTime;
-        for (int i = 0; i < fConfig.getResolutions().size(); i++) {
-            if (fCachedTiles.size() < i + 1) {
-                // allocate new tile
-                long endTimeTile = stateStartTime + fConfig.getNPixels() * fConfig.getResolutions().get(i);
-                fCachedTiles.add(new HistoryTile(fConfig.getResolutions().get(i), stateStartTime, endTimeTile));
+        if (stateEndTime - fConfig.getStart() > REDUCTION_FACTOR * fConfig.getResolutions().get(fConfig.getResolutions().size() - 1) * fConfig.getNPixels()) {
+            fConfig.addResolution(fConfig.getResolutions().get(fConfig.getResolutions().size() - 1) * REDUCTION_FACTOR);
+            HistoryTile nextHistoryTile = createNewTile(fConfig.getResolutions().size() - 1, (REDUCTION_FACTOR - 1) * fConfig.getResolutions().get(fConfig.getResolutions().size() - 1) * fConfig.getNPixels());
+            fCachedTiles.add(nextHistoryTile);
+            for (int i = 0; i < REDUCTION_FACTOR - 1; i++) {
+                HistoryTile tile = fConfig.readTile(fReadChannel, fConfig.getResolutions().size() - 2, i);
+                Map<Integer, List<@NonNull ITmfStateInterval>> intervalMap = tile.getIntervalMap();
+                insertAllStates(intervalMap, nextHistoryTile);
             }
-            // insert interval in cached tile
+            // Last tile is not yet written to disk
+            Map<Integer, List<@NonNull ITmfStateInterval>> intervalMap = fCachedTiles.get(fConfig.getResolutions().size() - 2).getIntervalMap();
+            insertAllStates(intervalMap, nextHistoryTile);
+        }
+        for (int i = 0; i < fConfig.getResolutions().size(); i++) {
             fCachedTiles.get(i).insertPastState(stateStartTime, stateEndTime, quark, value, fConfig.isEveryIntervalContiguous());
             if (fCachedTiles.get(i).isFinished()) {
                 writeTileToDisk(fCachedTiles.get(i));
-                // create new tile until we reach state start and insert
-                // state
+                // create new tile until we reach state start and insert state
                 HistoryTile nextHistoryTile = createNewTile(i, stateEndTime);
                 fCachedTiles.set(i, nextHistoryTile);
                 nextHistoryTile.insertPastState(stateStartTime, stateEndTime, quark, value, fConfig.isEveryIntervalContiguous());
+            }
+        }
+    }
+
+    private void insertAllStates(Map<Integer, List<@NonNull ITmfStateInterval>> intervalMap, HistoryTile tile) {
+        for (int quark : intervalMap.keySet()) {
+            List<@NonNull ITmfStateInterval> intervalList = intervalMap.getOrDefault(quark, Collections.emptyList());
+            for (ITmfStateInterval interval: intervalList) {
+                tile.insertPastState(interval.getStartTime(), interval.getEndTime(), quark, interval.getValue(), fConfig.isEveryIntervalContiguous());
             }
         }
     }
@@ -163,21 +180,26 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
         // Finished building after writing all the tiles to avoid setting a tile
         // in the cache at the same time.
         fFinishedBuilding = true;
-        fConfig.writeConfig(fWriteChannel);
+        fConfig.writeConfig(fWriteChannel, fReadChannel);
     }
 
     private HistoryTile createNewTile(int resolutionIndex, long endTime) {
-        long startTile = fCachedTiles.get(resolutionIndex).getEnd() + 1;
+        long startTile;
+        if (resolutionIndex < fCachedTiles.size()) {
+            startTile = fCachedTiles.get(resolutionIndex).getEnd() + 1;
+        } else {
+            startTile = getStartTime();
+        }
         long endTimeTile = startTile + fConfig.getNPixels() * fConfig.getResolutions().get(resolutionIndex);
         while (endTimeTile < endTime) {
             startTile = endTimeTile + 1;
             endTimeTile = startTile + fConfig.getNPixels() * fConfig.getResolutions().get(resolutionIndex);
         }
         HistoryTile historyTile;
-        if (resolutionIndex == fConfig.getResolutions().size() - 1) {
-            historyTile = new HistoryTile(fConfig.getResolutions().get(resolutionIndex), startTile, endTimeTile, true);
+        if (resolutionIndex == 0) {
+            historyTile = new HistoryTile(fConfig.getResolutions().get(resolutionIndex), startTile, endTimeTile, fConfig.getNPixels(), true);
         } else {
-            historyTile = new HistoryTile(fConfig.getResolutions().get(resolutionIndex), startTile, endTimeTile);
+            historyTile = new HistoryTile(fConfig.getResolutions().get(resolutionIndex), startTile, endTimeTile, fConfig.getNPixels(), false);
         }
         return historyTile;
     }
@@ -204,7 +226,7 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        System.out.println("AttributeTree  reader supplied");
+        System.out.println("AttributeTree reader supplied");
         return fFileInputStream;
     }
 
@@ -250,7 +272,7 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
 
     private HistoryTile readTile(int resolutionIndex, long time) {
         int tileIndex = 0;
-        if (resolutionIndex > 0) {
+        if (resolutionIndex < fConfig.getResolutions().size() - 1) {
             tileIndex = (int) Math.floorDiv(time - 1 - fConfig.getStart(), fConfig.getResolutions().get(resolutionIndex) * fConfig.getNPixels());
             if (tileIndex < 0) {
                 tileIndex = 0;
@@ -272,8 +294,8 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
     private int readBiggerResolution(int startingResolutionIndex) {
         long minimumIntervalSize = fConfig.getResolutions().get(startingResolutionIndex) * fConfig.getNPixels();
         int resolutionIndex = startingResolutionIndex;
-        while (resolutionIndex - 1 >= 0 && minimumIntervalSize > fConfig.getResolutions().get(resolutionIndex - 1)) {
-            resolutionIndex--;
+        while (resolutionIndex + 1 < fConfig.getResolutions().size() && minimumIntervalSize > fConfig.getResolutions().get(0)) {
+            resolutionIndex++;
         }
         return resolutionIndex;
     }
@@ -286,10 +308,10 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
                 currentStateInfo.set(i, null);
             }
         }
-        int resolutionIndex = fConfig.getResolutions().size() - 1;
+        int resolutionIndex = 0;
         HistoryTile tile = readTile(resolutionIndex, t);
         tile.doQuery(currentStateInfo, t);
-        while (currentStateInfo.contains(null) && resolutionIndex > 0) {
+        while (currentStateInfo.contains(null) && resolutionIndex < fConfig.getResolutions().size() - 1) {
             // read adjacent tile
             long timeAdjacentTile = t + fConfig.getResolutions().get(resolutionIndex) * fConfig.getNPixels();
             if (timeAdjacentTile <= fEnd) {
@@ -312,10 +334,10 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
             throw new TimeRangeException(String.format("%s Time:%d, Start:%d, End:%d", //$NON-NLS-1$
                     fSsid, t, fConfig.getStart(), fConfig.getEnd()));
         }
-        int resolutionIndex = fConfig.getResolutions().size() - 1;
+        int resolutionIndex = 0;
         HistoryTile tile = readTile(resolutionIndex, t);
         ITmfStateInterval interval = tile.doSingularQuery(t, attributeQuark);
-        while (interval == null && resolutionIndex > 0) {
+        while (interval == null && resolutionIndex < fConfig.getResolutions().size()) {
             // read adjacent tile
             tile = readTile(resolutionIndex, t + fConfig.getResolutions().get(resolutionIndex) * fConfig.getNPixels());
             interval = tile.doSingularQuery(t, attributeQuark);
@@ -341,9 +363,9 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
         }
         // calculate tile resolution
         long requestedResolution = timeArray[1] - timeArray[0];
-        int resolutionIndex = 0;
-        while (fConfig.getResolutions().get(resolutionIndex) > requestedResolution && resolutionIndex + 1 < fConfig.getResolutions().size()) {
-            resolutionIndex++;
+        int resolutionIndex = fConfig.getResolutions().size();
+        while (fConfig.getResolutions().get(resolutionIndex) > requestedResolution && resolutionIndex - 1 < fConfig.getResolutions().size()) {
+            resolutionIndex--;
         }
         System.out.println("requestedResolution: " + requestedResolution + ", resolutionSelected: " + fConfig.getResolutions().get(resolutionIndex)); //$NON-NLS-1$ //$NON-NLS-2$
 
@@ -361,7 +383,7 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
             // check for missing intervals in last tile
             Collection<@NonNull Integer> missingIntervalQuarks = tile.checkMissingInterval(quarks.getIntegerArray(), times.max());
             // if missed interval -> doquery on times.max()
-            int nAttributes = fCachedTiles.get(0).getNumberAttributes();
+            int nAttributes = fCachedTiles.get(fCachedTiles.size()).getNumberAttributes();
             List<@Nullable ITmfStateInterval> currentStateInfo = new ArrayList<>(Collections.nCopies(nAttributes, null));
             doQuery(currentStateInfo, times.max());
             // add intervals to iterable for all intervals that are in the
@@ -381,7 +403,7 @@ public class HistoryTileBackendDynamic implements IStateHistoryBackend {
 
     private Iterable<@NonNull ITmfStateInterval> query2DContinuous(IntegerRangeCondition quarks, TimeRangeCondition times) {
         Iterable<@NonNull ITmfStateInterval> result = Collections.emptyList();
-        int resolutionIndex = fConfig.getResolutions().size() - 1;
+        int resolutionIndex = 0;
         try (FlowScopeLog next = new FlowScopeLogBuilder(LOGGER, Level.FINER, "HistoryTileBackend:initQuery2D").build()) { //$NON-NLS-1$
             long timeCursor = times.min();
 

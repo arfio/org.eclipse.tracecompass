@@ -37,6 +37,7 @@ public class HistoryTile {
     private long fResolution;
     private long fStart;
     private long fEnd;
+    private int fNPixels = 0;
     private int fDuplicatedSize = 0;
     private int fDuplicatedIntervals = 0;
     private boolean fFinished = false;
@@ -52,8 +53,9 @@ public class HistoryTile {
         fEnd = end;
     }
 
-    HistoryTile(long resolution, long start, long end, boolean ignoreResolutionCutOff) {
+    HistoryTile(long resolution, long start, long end, int nPixels, boolean ignoreResolutionCutOff) {
         this(resolution, start, end);
+        fNPixels = nPixels;
         fIgnoreResolutionCutOff = ignoreResolutionCutOff;
     }
 
@@ -164,6 +166,10 @@ public class HistoryTile {
         return fIntervalMap.size();
     }
 
+    public Map<Integer, List<@NonNull ITmfStateInterval>> getIntervalMap() {
+        return fIntervalMap;
+    }
+
     public void doQuery(@NonNull List<@Nullable ITmfStateInterval> currentStateInfo, long t) {
         if (t > fEnd) {
             return; // Ignore any interval outside the tile range
@@ -235,22 +241,13 @@ public class HistoryTile {
         }
         fRwl.writeLock().lock();
         try {
+            boolean isIntersectingSample = Long.divideUnsigned((stateStartTime - fStart), fNPixels) + 1 <= Long.divideUnsigned((stateEndTime - fStart), fNPixels);
+            // Add if interval intersects multiple of resolution
+            if (!isIntersectingSample && !fIgnoreResolutionCutOff && stateStartTime != fStart) {
+                return;
+            }
             // Save interval if interval bigger than resolution
             List<ITmfStateInterval> intervalList = fIntervalMap.computeIfAbsent(quark, k -> new ArrayList<>(1));
-            // Interval smaller than resolution -> Add while previous interval <
-            // resolution
-            if (stateEndTime - stateStartTime < fResolution && !intervalList.isEmpty() && !fIgnoreResolutionCutOff) {
-                TileInterval lastInterval = (TileInterval) intervalList.get(intervalList.size() - 1);
-                if (lastInterval.getEndTime() - lastInterval.getStartTime() < fResolution && !lastInterval.isNull()) {
-                    // As the start time stays the same, no need to distinguish
-                    // between contiguous vs non contiguous intervals.
-                    fSize += HTVarInt.getEncodedLengthLong(stateEndTime - lastInterval.getStartTime()) - HTVarInt.getEncodedLengthLong(lastInterval.getEndTime() - lastInterval.getStartTime());
-                    // to remove 1line
-                    fDuplicatedSize += HTVarInt.getEncodedLengthLong(stateEndTime - lastInterval.getStartTime()) - HTVarInt.getEncodedLengthLong(lastInterval.getEndTime() - lastInterval.getStartTime());
-                    lastInterval.setEndTime(stateEndTime);
-                    return;
-                }
-            }
             TileInterval interval = new TileInterval(stateStartTime, stateEndTime, quark, value);
             intervalList.add(interval);
             fSize += interval.getSizeOnDisk(isEveryIntervalContiguous);
