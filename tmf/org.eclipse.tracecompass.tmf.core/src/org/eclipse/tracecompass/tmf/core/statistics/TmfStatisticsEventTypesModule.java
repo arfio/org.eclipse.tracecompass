@@ -68,7 +68,7 @@ public class TmfStatisticsEventTypesModule extends TmfStateSystemAnalysisModule 
 
     @Override
     protected StateSystemBackendType getBackendType() {
-        return StateSystemBackendType.DYNAMIC_TILE;
+        return StateSystemBackendType.TILE;
     }
 
     /**

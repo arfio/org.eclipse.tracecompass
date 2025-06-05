@@ -93,7 +93,7 @@ public class KernelAnalysisModule extends TmfStateSystemAnalysisModule {
 
     @Override
     protected StateSystemBackendType getBackendType() {
-        return StateSystemBackendType.CONFIGURABLE;
+        return StateSystemBackendType.CONSTANT_SIZE;
     }
 
     /**

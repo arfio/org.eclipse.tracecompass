@@ -36,6 +36,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.common.core.NonNullUtils;
 import org.eclipse.tracecompass.common.core.log.TraceCompassLog;
 import org.eclipse.tracecompass.internal.statesystem.core.backend.historytiles.HistoryTileBackendFactory;
+import org.eclipse.tracecompass.internal.statesystem.core.backend.historytiles.constantsize.HistoryTileConstantSizeBackendFactory;
 import org.eclipse.tracecompass.internal.statesystem.core.backend.historytiles.dynamic.HistoryTileBackendDynamicFactory;
 import org.eclipse.tracecompass.internal.tmf.core.Activator;
 import org.eclipse.tracecompass.internal.tmf.core.statesystem.backends.partial.PartialHistoryBackend;
@@ -119,17 +120,22 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         PARTIAL,
         /**
          * State system backed with partial history tiles
-         * @since 9.6
+         * @since 10.0
          */
         TILE,
         /**
-         * @since 9.6
+         * @since 10.0
          *
          */
         DYNAMIC_TILE,
         /**
+         * @since 10.0
+         *
+         */
+        CONSTANT_SIZE,
+        /**
          * State system configured through an environment variable, if it does not find the backend, defaults to FULL
-         * @since 9.6
+         * @since 10.0
          */
         CONFIGURABLE,
         /**
@@ -320,6 +326,7 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
                 break;
             case TILE:
             case DYNAMIC_TILE:
+            case CONSTANT_SIZE:
                 htFile = getSsFile();
                 if (htFile == null) {
                     return false;
@@ -347,7 +354,11 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
     }
 
     private static StateSystemBackendType getBackendTypeFromEnv() {
-        switch (System.getenv("TC_ANALYSIS_BACKEND")) { //$NON-NLS-1$
+        String backendType = System.getenv("TC_ANALYSIS_BACKEND");
+        if (backendType == null) {
+            backendType = "FULL";
+        }
+        switch (backendType) { //$NON-NLS-1$
         case "TILE": //$NON-NLS-1$
             return StateSystemBackendType.TILE;
         case "PARTIAL": //$NON-NLS-1$
@@ -542,6 +553,8 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
             if (backendType == StateSystemBackendType.TILE) {
                 long endTime = provider.getTrace().readEnd().getValue();
                 backend = HistoryTileBackendFactory.createHistoryTreeBackendNewFile(id, provider.getStartTime(), endTime, provider.getVersion(), htFile, true);
+            } else if (backendType == StateSystemBackendType.CONSTANT_SIZE) {
+                backend = HistoryTileConstantSizeBackendFactory.createHistoryBackendNewFile(id, provider.getVersion(), htFile, provider.getStartTime());
             } else {
                 backend = HistoryTileBackendDynamicFactory.createHistoryTreeBackendNewFile(id, provider.getStartTime(), provider.getVersion(), htFile, true);
             }
@@ -965,7 +978,7 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         }
         properties.put(NonNullUtils.checkNotNull(Messages.TmfStateSystemAnalysisModule_PropertiesBackend), backend.name());
         switch (backend) {
-        case FULL,PARTIAL,TILE, DYNAMIC_TILE:
+        case FULL,PARTIAL,TILE, DYNAMIC_TILE, CONSTANT_SIZE:
             File htFile = getSsFile();
             if (htFile != null) {
                 if (htFile.exists()) {

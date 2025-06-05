@@ -5,9 +5,13 @@ import java.io.IOException;
 
 import org.eclipse.tracecompass.statesystem.core.backend.IStateHistoryBackend;
 
+/**
+ * @since 5.4
+ *
+ */
 public class HistoryTileConstantSizeBackendFactory {
 
-    private static final int TILE_SIZE = 256 * 1024;
+    private static final int TILE_SIZE = 1024;
 
     private HistoryTileConstantSizeBackendFactory() {}
 
