@@ -64,7 +64,7 @@ public class LttngUstCallStackAnalysis extends InstrumentedCallStackAnalysis {
 
     @Override
     protected StateSystemBackendType getBackendType() {
-        return StateSystemBackendType.CONSTANT_SIZE;
+        return StateSystemBackendType.DYNAMIC_TILE;
     }
 
     @Override

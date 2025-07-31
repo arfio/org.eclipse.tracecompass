@@ -65,10 +65,6 @@ public class HistoryTileConstantSize {
         fIntervalData.add(intervalData);
         fEnd = Math.max(end, fEnd);
         if (fIntervalData.size() >= fMaxSize) {
-            // End of tile is set at the beginning to ensure the tile
-            // has all the intervals that end before this time.
-            // This makes reading the tile before necessary in case we do not find the interval.
-            fEnd = start;
             fFinished = true;
         }
     }
@@ -101,9 +97,9 @@ public class HistoryTileConstantSize {
     }
 
     public Iterable<ITmfStateInterval> query2d(IntegerRangeCondition quarks, TimeRangeCondition times) {
-        System.out.println("query2d on tile with start " + fStart + " and end " + fEnd);
+//        System.out.println("query2d on tile with start " + fStart + " and end " + fEnd);
         if (fFinished) {
-            return () -> IntStream.range(0, fMaxSize)
+            return () -> IntStream.range(0, fIntervalData.size())
                     .filter(i -> times.intersects(fStart, fEndTimes[i]))
                     .mapToObj(this::createStateInterval)
                     .filter(i -> quarks.test(i.getAttribute()))

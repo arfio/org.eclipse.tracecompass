@@ -7,9 +7,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 
-FROM alpine:3.18.0 as packager
-
-RUN apk --no-cache add openjdk17-jdk openjdk17-jmods maven
+FROM maven:3.9-eclipse-temurin-21 as packager
 
 COPY ./ /app/
 
@@ -17,7 +15,7 @@ WORKDIR /app/
 
 RUN mvn clean install -DskipTests -Dskip-rcp -Pfilter-grammar -Pctf-grammar
 
-FROM alpine:3.18.0
+FROM maven:3.9-eclipse-temurin-21
 
 COPY --from=packager /root/.m2/ /root/.m2/
 

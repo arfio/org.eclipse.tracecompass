@@ -121,7 +121,7 @@ public class HistoryTileConstantSizeBackend implements IStateHistoryBackend {
         try {
             long position = fWriteChannel.position();
             tile.writeSelf(fWriteChannel);
-            fMetadata.addTile(fWriteChannel, detailLevel, position, tile.getStart());
+            fMetadata.addTile(fWriteChannel, detailLevel, position, tile.getEnd());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -151,10 +151,6 @@ public class HistoryTileConstantSizeBackend implements IStateHistoryBackend {
      * @return
      */
     private HistoryTileConstantSize readTileFromDisk(int detailLevel, long timestamp) {
-        HistoryTileConstantSize cachedTile = fCachedTiles.get(detailLevel);
-        if (cachedTile != null && cachedTile.getStart() <= timestamp && cachedTile.getEnd() >= timestamp) {
-            return fCachedTiles.get(detailLevel);
-        }
         int sequenceNumber = fMetadata.getSequenceNumber(detailLevel, timestamp);
         long tilePosition = fMetadata.getTilePosition(detailLevel, sequenceNumber);
         if (tilePosition < 0) {
@@ -177,8 +173,8 @@ public class HistoryTileConstantSizeBackend implements IStateHistoryBackend {
         return null;
     }
 
-    private HistoryTileConstantSize readNextTileFromDisk(int detailLevel, int sequenceNumber) {
-        long tilePosition = fMetadata.getTilePosition(detailLevel, sequenceNumber + 1);
+    private HistoryTileConstantSize readTileFromDisk(int detailLevel, int sequenceNumber) {
+        long tilePosition = fMetadata.getTilePosition(detailLevel, sequenceNumber);
         if (tilePosition < 0) {
             return null;
         }
@@ -192,7 +188,7 @@ public class HistoryTileConstantSizeBackend implements IStateHistoryBackend {
                 fReadChannel.position(tilePosition);
                 fReadChannel.read(buffer);
             }
-            return HistoryTileConstantSize.readTile(buffer, fTileSize, sequenceNumber + 1);
+            return HistoryTileConstantSize.readTile(buffer, fTileSize, sequenceNumber);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -290,25 +286,52 @@ public class HistoryTileConstantSizeBackend implements IStateHistoryBackend {
             throw new TimeRangeException(String.format("%s Time:%d, Start:%d, End:%d", //$NON-NLS-1$
                     fSsid, t, fMetadata.getStart(), fMetadata.getEnd()));
         }
-        // Read tile at every detail level and doSingularQuery on each
-        ITmfStateInterval interval = null;
+        /*
+         * Finding the interval for sure requires reading all the tiles between
+         * t and t + 10 ^ detailLevel. If the interval is bigger then it will be
+         * on a higher detail level.
+         */
         for (int i = 0; i < fCachedTiles.size(); i++) {
-            HistoryTileConstantSize tile = readTileFromDisk(i, t);
-            if (tile != null) {
-                interval = tile.doSingularQuery(t, attributeQuark);
+            // Trying out the cached tile
+            HistoryTileConstantSize cachedTile = fCachedTiles.get(i);
+            if (cachedTile != null && cachedTile.getStart() <= t && cachedTile.getEnd() >= t) {
+                ITmfStateInterval interval = cachedTile.doSingularQuery(t, attributeQuark);
                 if (interval != null) {
                     return interval;
                 }
-                tile = readNextTileFromDisk(i, tile.getSequenceNumber());
-                if (tile != null) {
-                    interval = tile.doSingularQuery(t, attributeQuark);
-                    if (interval != null) {
-                        return interval;
-                    }
+            }
+            // Read all the tiles until the interval size is too big to be located at that detail level.
+            HistoryTileConstantSize tile = readTileFromDisk(i, t);
+            while (tile != null && t + Math.pow(10, i) > tile.getStart()) {
+                System.out.println("Interval searched at level: " + i + " sequence number: " + tile.getSequenceNumber());
+                ITmfStateInterval interval = tile.doSingularQuery(t, attributeQuark);
+                if (interval != null) {
+                    return interval;
+                }
+                tile = readTileFromDisk(i, tile.getSequenceNumber() + 1);
+            }
+        }
+        bruteforceLocation(t, attributeQuark);
+        System.out.println("SingularQuery fail with t: " + t + " , quark: " + attributeQuark);
+        return null;
+    }
+
+    private void bruteforceLocation(long t, int attributeQuark) {
+        for (int i = 0; i < fCachedTiles.size(); i++) {
+            for (int j = 0; j < fMetadata.getLatestSequenceNumber(i); j++) {
+
+                HistoryTileConstantSize tile = readTileFromDisk(i, j);
+                if (tile == null) {
+                    tile = readTileFromDisk(i, j);
+                    System.out.println("tile not found ? level: " + i + " sequence number: " + j);
+                    continue;
+                }
+                ITmfStateInterval interval = tile.doSingularQuery(t, attributeQuark);
+                if (interval != null) {
+                    System.out.println("Interval found at level: " + i + " sequence number: " + j);
                 }
             }
         }
-        return null;
     }
 
     @Override
@@ -319,6 +342,8 @@ public class HistoryTileConstantSizeBackend implements IStateHistoryBackend {
             return Collections.emptyList();
         }
 
+        System.out.println("query2d constant size");
+
         double distanceBetweenTimes = timeArray[1] - (double) timeArray[0];
         int lowestDetailLevel = (int) Math.log10(distanceBetweenTimes);
         if (lowestDetailLevel < 0) {
@@ -326,35 +351,37 @@ public class HistoryTileConstantSizeBackend implements IStateHistoryBackend {
         }
         int highDetailLevel = (int) Math.log10(times.max() - times.min());
 
-        System.out.println("LowestDetailLevel: " + lowestDetailLevel + ", HighDetailLevel: " + highDetailLevel);
-
         Iterable<@NonNull ITmfStateInterval> result = Collections.emptyList();
-        // Get large intervals
-        for (int i = fCachedTiles.size() - 1; i > highDetailLevel; i--) {
-            HistoryTileConstantSize tile = readTileFromDisk(i, times.min());
-            /*
-             * If the cached tile is the first tile for this detail level, then
-             * no tile has been written to disk for this detaillevel. Therefore,
-             * the tileposition will be -1 and in this case, we need to return
-             * the cached tile.
-             */
-            tile = tile == null ? fCachedTiles.get(i) : tile;
-            if (tile != null) {
-                result = Iterables.concat(result, tile.query2d(quarks, times));
-            }
-        }
 
-        // Fill in the rest
-        for (int i = Math.min(highDetailLevel, fCachedTiles.size() - 1); i >= lowestDetailLevel; i--) {
-            HistoryTileConstantSize tile = readTileFromDisk(i, times.min());
-            // Same comment as the previous loop
-            tile = tile == null ? fCachedTiles.get(i) : tile;
-            while (tile != null) {
-                result = Iterables.concat(result, tile.query2d(quarks, times));
-                if (tile.getEnd() > times.max()) {
-                    break;
+        try (FlowScopeLog next = new FlowScopeLogBuilder(LOGGER, Level.FINER,
+                "HistoryTileConstantSizeBackend:query2DInitialisation").build()) { //$NON-NLS-1$
+            // Get large intervals
+            for (int i = fCachedTiles.size() - 1; i > highDetailLevel; i--) {
+                HistoryTileConstantSize tile = readTileFromDisk(i, times.min());
+                /*
+                 * If the cached tile is the first tile for this detail level, then
+                 * no tile has been written to disk for this detaillevel. Therefore,
+                 * the tileposition will be -1 and in this case, we need to return
+                 * the cached tile.
+                 */
+                tile = tile == null ? fCachedTiles.get(i) : tile;
+                if (tile != null) {
+                    result = Iterables.concat(result, tile.query2d(quarks, times));
                 }
-                tile = readNextTileFromDisk(i, tile.getSequenceNumber());
+            }
+
+            // Fill in the rest
+            for (int i = Math.min(highDetailLevel, fCachedTiles.size() - 1); i >= lowestDetailLevel; i--) {
+                HistoryTileConstantSize tile = readTileFromDisk(i, times.min());
+                // Same comment as the previous loop
+                tile = tile == null ? fCachedTiles.get(i) : tile;
+                while (tile != null) {
+                    result = Iterables.concat(result, tile.query2d(quarks, times));
+                    if (tile.getEnd() > times.max()) {
+                        break;
+                    }
+                    tile = readTileFromDisk(i, tile.getSequenceNumber() + 1);
+                }
             }
         }
         return result;

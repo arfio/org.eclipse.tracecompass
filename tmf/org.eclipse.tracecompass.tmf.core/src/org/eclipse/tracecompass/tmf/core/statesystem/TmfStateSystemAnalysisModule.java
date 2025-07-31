@@ -120,22 +120,22 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
         PARTIAL,
         /**
          * State system backed with partial history tiles
-         * @since 10.0
+         * @since 10.1
          */
         TILE,
         /**
-         * @since 10.0
+         * @since 10.1
          *
          */
         DYNAMIC_TILE,
         /**
-         * @since 10.0
+         * @since 10.1
          *
          */
         CONSTANT_SIZE,
         /**
          * State system configured through an environment variable, if it does not find the backend, defaults to FULL
-         * @since 10.0
+         * @since 10.1
          */
         CONFIGURABLE,
         /**
@@ -359,6 +359,8 @@ public abstract class TmfStateSystemAnalysisModule extends TmfAbstractAnalysisMo
             backendType = "FULL";
         }
         switch (backendType) { //$NON-NLS-1$
+        case "CONSTANT_SIZE":
+            return StateSystemBackendType.CONSTANT_SIZE;
         case "TILE": //$NON-NLS-1$
             return StateSystemBackendType.TILE;
         case "PARTIAL": //$NON-NLS-1$

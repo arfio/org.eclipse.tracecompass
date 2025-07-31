@@ -100,6 +100,11 @@ public abstract class InstrumentedCallStackAnalysis extends TmfStateSystemAnalys
     }
 
     @Override
+    protected StateSystemBackendType getBackendType() {
+        return StateSystemBackendType.CONFIGURABLE;
+    }
+
+    @Override
     public boolean setTrace(ITmfTrace trace) throws TmfAnalysisException {
         if (!super.setTrace(trace)) {
             return false;

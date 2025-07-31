@@ -241,9 +241,9 @@ public class HistoryTile {
         }
         fRwl.writeLock().lock();
         try {
-            boolean isIntersectingSample = Long.divideUnsigned((stateStartTime - fStart), fNPixels) + 1 <= Long.divideUnsigned((stateEndTime - fStart), fNPixels);
+            boolean isIntersectingSample = stateStartTime <= fStart || (Long.divideUnsigned((stateStartTime - fStart), fNPixels) + 1) <= Long.divideUnsigned((stateEndTime - fStart), fNPixels);
             // Add if interval intersects multiple of resolution
-            if (!isIntersectingSample && !fIgnoreResolutionCutOff && stateStartTime != fStart) {
+            if (!isIntersectingSample && !fIgnoreResolutionCutOff) {
                 return;
             }
             // Save interval if interval bigger than resolution
@@ -252,10 +252,10 @@ public class HistoryTile {
             intervalList.add(interval);
             fSize += interval.getSizeOnDisk(isEveryIntervalContiguous);
             //to remove 3lines
-            if (!fIgnoreResolutionCutOff) {
-                fDuplicatedSize += interval.getSizeOnDisk(isEveryIntervalContiguous);
-                fDuplicatedIntervals += 1;
-            }
+//            if (!fIgnoreResolutionCutOff) {
+//                fDuplicatedSize += interval.getSizeOnDisk(isEveryIntervalContiguous);
+//                fDuplicatedIntervals += 1;
+//            }
         } finally {
             fRwl.writeLock().unlock();
         }

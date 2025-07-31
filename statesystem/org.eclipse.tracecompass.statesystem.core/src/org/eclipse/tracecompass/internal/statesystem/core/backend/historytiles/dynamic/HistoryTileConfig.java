@@ -82,10 +82,16 @@ public class HistoryTileConfig {
             if (fResolutions.get(i) == tile.getResolution()) {
                 for (int j = fTilePositions.get(i).size(); j <= tileIndex; j++) {
                     fTilePositions.get(i).add(0L);
+                    System.out.println("add tile to " + tile.getResolution() + " index: " + j);
                 }
                 fTilePositions.get(i).set(tileIndex, tilePosition);
+                System.out.println("add tile to " + tile.getResolution() + " index: " + tileIndex);
             }
         }
+    }
+
+    public boolean hasTile(int resolutionIndex, int tileIndex) {
+        return resolutionIndex < fTilePositions.size() && tileIndex < fTilePositions.get(resolutionIndex).size();
     }
 
     public HistoryTile readTile(FileChannel channel, int resolutionIndex, int tileIndex) {
@@ -93,8 +99,10 @@ public class HistoryTileConfig {
                 "HistoryTileConfig:readTile").build()) { //$NON-NLS-1$
             long start = fStart + fResolutions.get(resolutionIndex) * fNPixels * tileIndex;
             long end = start + fResolutions.get(resolutionIndex) * fNPixels;
+            if (tileIndex >= fTilePositions.get(resolutionIndex).size()) {
+                return new HistoryTile(fResolutions.get(resolutionIndex), start, end);
+            }
             long tilePosition = fTilePositions.get(resolutionIndex).get(tileIndex);
-
             if (tilePosition == 0) {
                 return new HistoryTile(fResolutions.get(resolutionIndex), start, end);
             }
@@ -253,13 +261,6 @@ public class HistoryTileConfig {
 
     public boolean isEveryIntervalContiguous() {
         return fIsEveryIntervalContiguous;
-    }
-
-    public long getEnd() {
-        if (fResolutions.isEmpty()) {
-            return 0L;
-        }
-        return fStart + fResolutions.get(0) * fNPixels;
     }
 
     public File getStateFile() {
