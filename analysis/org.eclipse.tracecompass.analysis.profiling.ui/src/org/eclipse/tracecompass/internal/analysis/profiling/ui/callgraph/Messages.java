@@ -24,6 +24,51 @@ public class Messages extends NLS {
      * Name of the job executing the callGraphAnalysis
      */
     public static @Nullable String CallGraphAnalysis;
+
+    /**
+     * Build Job
+     */
+    public static String CallGraphView_BuildJob;
+    /**
+     * Group for layout buttons
+     */
+    public static String CallGraphView_Group;
+
+    /**
+     * Horizontal tree layout
+     */
+    public static String CallGraphView_HorizontalTreeLayout;
+
+    /**
+     * Layout job
+     */
+    public static String CallGraphView_LayoutJob;
+
+    /**
+     * Radial layout
+     */
+    public static String CallGraphView_RadialLayout;
+
+    /**
+     * Spring layout
+     */
+    public static String CallGraphView_SpringLayout;
+
+    /**
+     * Symbol job name
+     */
+    public static String CallGraphView_SymbolJobName;
+
+    /**
+     * Tree layout
+     */
+    public static String CallGraphView_TreeLayout;
+
+    /**
+     * Wait for parent message
+     */
+    public static String CallGraphView_WaitForParentAnalysis;
+
     static {
         // initialize resource bundle
         NLS.initializeMessages(BUNDLE_NAME, Messages.class);

@@ -37,5 +37,11 @@ Import-Package: com.google.common.annotations,
  com.google.common.base,
  com.google.common.collect,
  org.apache.commons.lang3,
+ org.eclipse.draw2d,
+ org.eclipse.draw2d.widgets,
  org.eclipse.swtchart,
- org.eclipse.tracecompass.traceeventlogger
+ org.eclipse.tracecompass.traceeventlogger,
+ org.eclipse.zest.core.viewers,
+ org.eclipse.zest.core.widgets,
+ org.eclipse.zest.layouts,
+ org.eclipse.zest.layouts.algorithms

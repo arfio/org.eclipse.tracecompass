@@ -80,6 +80,13 @@
             name="%view.flameChart"
             restorable="true">
       </view>
+      <view
+            category="org.eclipse.linuxtools.tmf.ui.views.category"
+            class="org.eclipse.tracecompass.internal.analysis.profiling.ui.callgraph.CallGraphView"
+            id="org.eclipse.tracecompass.internal.analysis.profiling.ui.callgraph.callgraph"
+            name="callgraph"
+            restorable="true">
+      </view>
    </extension>
    <extension
          point="org.eclipse.linuxtools.tmf.core.analysis">
