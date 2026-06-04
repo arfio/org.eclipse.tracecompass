@@ -34,21 +34,6 @@ import org.eclipse.tracecompass.tmf.core.trace.ITmfTrace;
 public interface IDataProviderFactory extends IAdaptable {
 
     /**
-     * Create a {@link ITmfTreeDataProvider} for the given trace. If this factory
-     * does not know how to handle the given trace it will return null
-     *
-     * @param trace
-     *            A trace
-     * @return {@link ITmfTreeDataProvider} that can be use for the given trace
-     * @since 4.0
-     * @deprecated As of version 10.0, use {@link #createDataProvider(ITmfTrace)} instead
-     */
-    @Deprecated(since = "10.0", forRemoval = true)
-    @Nullable default ITmfTreeDataProvider<? extends ITmfTreeDataModel> createProvider(@NonNull ITmfTrace trace) {
-        return null;
-    }
-
-    /**
      * Create a {@link ITmfDataProvider} for the given trace. If this factory
      * does not know how to handle the given trace it will return null
      *
@@ -58,29 +43,6 @@ public interface IDataProviderFactory extends IAdaptable {
      * @since 10.0
      */
     @Nullable default ITmfDataProvider createDataProvider(@NonNull ITmfTrace trace) {
-        return createProvider(trace);
-    }
-
-    /**
-D     * Create a {@link ITmfTreeDataProvider} for the given trace. If this factory
-     * does not know how to handle the given trace it will return null. The
-     * resulting provider should have an ID that is an aggregate of the provider's
-     * own ID and the secondaryId as such: <provider ID>:<secondaryId>
-     *
-     * @param trace
-     *            A trace
-     * @param secondaryId
-     *            Additional ID to identify different instances of the same
-     *            provider, for instance, when the same provider can be used for
-     *            different analysis modules
-     * @return {@link ITmfTreeDataProvider} that can be use for the given trace with
-     *         ID <provider ID>:<secondaryId>, or <code>null</code> if no provider
-     *         is available for this trace and ID
-     * @since 4.0
-     * @deprecated As of version 10.0, use {@link #createDataProvider(ITmfTrace)} instead
-     */
-    @Deprecated(since = "10.0", forRemoval = true)
-    default @Nullable ITmfTreeDataProvider<? extends ITmfTreeDataModel> createProvider(@NonNull ITmfTrace trace, @NonNull String secondaryId) {
         return createProvider(trace);
     }
 

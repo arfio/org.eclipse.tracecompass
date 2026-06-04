@@ -48,41 +48,6 @@ public final class TmfXyResponseFactory {
     }
 
     /**
-     * Create a {@link TmfModelResponse} for values with a common X axis values,
-     * with a either RUNNING or COMPLETED status. Model is not null, it's either
-     * partial or full.
-     *
-     * @param title
-     *            Chart title
-     * @param xValues
-     *            The x values requested by the viewer
-     * @param yModels
-     *            Collection of IYModel
-     * @param isComplete
-     *            Tells whether the computed model is complete or partial
-     * @return A {@link TmfModelResponse} with either a running status or a
-     *         completed status
-     * @deprecated Use {@link ISampling} for xValues instead.
-     */
-    @Deprecated(since = "10.2", forRemoval = true)
-    public static TmfModelResponse<ITmfXyModel> create(String title, long[] xValues, Collection<IYModel> yModels, boolean isComplete) {
-        List<ISeriesModel> series = Lists.transform(new ArrayList<>(yModels), model -> {
-            SeriesModelBuilder builder = new SeriesModelBuilder(model.getId(), model.getName(), xValues, model.getData());
-            TmfXYAxisDescription yAxis = model.getYAxisDescription();
-            if (yAxis != null) {
-                builder.yAxisDescription(yAxis);
-            }
-            return builder.build();
-        });
-        ITmfXyModel model = new TmfXyModel(title, series);
-
-        if (isComplete) {
-            return new TmfModelResponse<>(model, ITmfResponse.Status.COMPLETED, Objects.requireNonNull(CommonStatusMessage.COMPLETED));
-        }
-        return new TmfModelResponse<>(model, ITmfResponse.Status.RUNNING, Objects.requireNonNull(CommonStatusMessage.RUNNING));
-    }
-
-    /**
      * Create a {@link TmfModelResponse} for values with common sampling values,
      * with a either RUNNING or COMPLETED status. Model is not null, it's either
      * partial or full.

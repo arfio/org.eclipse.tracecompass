@@ -40,15 +40,6 @@ import org.eclipse.tracecompass.tmf.core.response.TmfModelResponse;
 public interface ITmfVirtualTableDataProvider<M extends ITmfTreeDataModel, L extends IVirtualTableLine> extends ITmfTreeDataProvider<M> {
 
     /**
-     * @deprecated Use {@link #fetchColumns} instead
-     */
-    @Deprecated
-    @Override
-    default TmfModelResponse<TmfTreeModel<M>> fetchTree(Map<String, Object> fetchParameters, @Nullable IProgressMonitor monitor) {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
      * This method computes the column descriptors of the virtual table. Then, it returns a {@link TmfModelResponse} that contains the
      * list of columns.
      *

@@ -219,32 +219,6 @@ public class DataProviderManager {
      *            Returned data provider must extend this class
      * @return the data provider or null if no data provider is found for the
      *         input parameter.
-     * @since 8.0
-     *
-     * @deprecated As of version 10.0, use {@link #fetchOrCreateDataProvider(ITmfTrace, String, Class)} instead
-     */
-    @Deprecated(since = "10.0", forRemoval = true)
-    public synchronized @Nullable <T extends ITmfTreeDataProvider<? extends ITmfTreeDataModel>> T getOrCreateDataProvider(@NonNull ITmfTrace trace, String id, Class<T> dataProviderClass) {
-        return fetchOrCreateDataProvider(trace, id, dataProviderClass);
-    }
-
-    /**
-     * Gets or creates the data provider for the given trace.
-     * <p>
-     * This method should never be called from within a
-     * {@link TmfSignalHandler}.
-     *
-     * @param trace
-     *            An instance of {@link ITmfTrace}. Note, that trace can be an
-     *            instance of TmfExperiment, too.
-     * @param id
-     *            Id of the data provider. This ID can be the concatenation of a
-     *            provider ID + ':' + a secondary ID used to differentiate
-     *            multiple instances of a same provider.
-     * @param dataProviderClass
-     *            Returned data provider must extend this class
-     * @return the data provider or null if no data provider is found for the
-     *         input parameter.
      * @since 10.0
      */
     public synchronized @Nullable <T extends ITmfDataProvider> T fetchOrCreateDataProvider(@NonNull ITmfTrace trace, String id, Class<T> dataProviderClass) {
@@ -270,33 +244,6 @@ public class DataProviderManager {
             }
         }
         return null;
-    }
-
-    /**
-     * Get a data provider for the given trace if it already exists due to
-     * calling {@link #getOrCreateDataProvider(ITmfTrace, String, Class)}
-     * before.
-     *
-     * <p>
-     * This method should never be called from within a
-     * {@link TmfSignalHandler}.
-     *
-     * @param trace
-     *            An instance of {@link ITmfTrace}. Note, that trace can be an
-     *            instance of TmfExperiment, too.
-     * @param id
-     *            Id of the data provider. This ID can be the concatenation of a
-     *            provider ID + ':' + a secondary ID used to differentiate
-     *            multiple instances of a same provider.
-     * @param dataProviderClass
-     *            Returned data provider must extend this class
-     * @return the data provider or null
-     * @since 8.0
-     * @deprecated As of version 10.0, use {@link #fetchExistingDataProvider(ITmfTrace, String, Class)} instead
-     */
-    @Deprecated(since = "10.0", forRemoval = true)
-    public synchronized @Nullable <T extends ITmfTreeDataProvider<? extends ITmfTreeDataModel>> T getExistingDataProvider(@NonNull ITmfTrace trace, String id, Class<T> dataProviderClass) {
-        return fetchExistingDataProvider(trace, id, dataProviderClass);
     }
 
     /**

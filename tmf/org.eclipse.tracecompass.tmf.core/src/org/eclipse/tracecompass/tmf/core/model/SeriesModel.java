@@ -87,62 +87,10 @@ public class SeriesModel implements ISeriesModel {
      *            The x values of this series
      * @param yValues
      *            The y values of this series
-     * @since 4.2
-     */
-    @Deprecated(since = "10.1", forRemoval = true)
-    public SeriesModel(long id, String name, long[] xValues, double[] yValues) {
-        this(id, name, xValues, yValues, new TmfXYAxisDescription(DEFAULT_XAXIS_NAME, DEFAULT_XAXIS_UNIT), new TmfXYAxisDescription(DEFAULT_YAXIS_NAME, DEFAULT_YAXIS_UNIT), DisplayType.LINE, new int[xValues.length]);
-    }
-
-    /**
-     * Constructor
-     *
-     * @param id
-     *            The unique ID of the associated entry
-     * @param name
-     *            The name of the series
-     * @param xValues
-     *            The x values of this series
-     * @param yValues
-     *            The y values of this series
      * @since 10.1
      */
     public SeriesModel(long id, String name, ISampling xValues, double[] yValues) {
         this(id, name, xValues, yValues, new TmfXYAxisDescription(DEFAULT_XAXIS_NAME, DEFAULT_XAXIS_UNIT), new TmfXYAxisDescription(DEFAULT_YAXIS_NAME, DEFAULT_YAXIS_UNIT), DisplayType.LINE, new int[xValues.size()]);
-    }
-
-    /**
-     * Constructor with axis description
-     *
-     * @param id
-     *            The unique ID of the associated entry
-     * @param name
-     *            The name of the series
-     * @param xValues
-     *            The x values of this series
-     * @param yValues
-     *            The y values of this series
-     * @param xAxis
-     *            X Axis description
-     * @param yAxis
-     *            Y Axis description
-     * @param displayType
-     *            Display type
-     * @param properties
-     *            The properties values for this series. Some priority values
-     *            are available in {@link CoreFilterProperty}
-     * @deprecated Use {@link ISampling} for xValues instead.
-     */
-    @Deprecated(since = "10.1", forRemoval = true)
-    private SeriesModel(long id, String name, long[] xValues, double[] yValues, TmfXYAxisDescription xAxis, TmfXYAxisDescription yAxis, DisplayType displayType, int[] properties) {
-        fId = id;
-        fName = name;
-        fSampling = new ISampling.Timestamps(xValues);
-        fYValues = yValues;
-        fXAxis = xAxis;
-        fYAxis = yAxis;
-        fDisplayType = displayType;
-        fProperties = properties;
     }
 
     /**
@@ -264,24 +212,6 @@ public class SeriesModel implements ISeriesModel {
         private @Nullable TmfXYAxisDescription yAxis;
         private @Nullable DisplayType displayType;
         private int @Nullable [] properties;
-
-        /**
-         * Constructor
-         *
-         * @param id
-         *            The unique ID of the associated entry
-         * @param name
-         *            The name of the series
-         * @param xValues
-         *            The x values of this series
-         * @param yValues
-         *            The y values of this series
-         * @deprecated Use {@link ISampling} for xValues instead.
-         */
-        @Deprecated(since = "10.1", forRemoval = true)
-        public SeriesModelBuilder(long id, String name, long[] xValues, double[] yValues) {
-            this(id, name, new ISampling.Timestamps(xValues), yValues);
-        }
 
         /**
          * Constructor using {@link ISampling}.

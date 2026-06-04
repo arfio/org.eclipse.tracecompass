@@ -94,15 +94,6 @@ public interface ISeriesModel {
     }
 
     /**
-     * Get the X values
-     *
-     * @return The x values
-     * @deprecated Use {@link #getSampling()} instead for support of categorical axes.
-     */
-    @Deprecated(since = "10.1", forRemoval = true)
-    long[] getXAxis();
-
-    /**
      * Sampling points for the X-axis, supporting both time-based and categorical domains.
      *
      * @return the X-axis sampling representation
