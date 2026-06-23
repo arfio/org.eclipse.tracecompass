@@ -11,11 +11,14 @@
 
 package org.eclipse.tracecompass.tmf.core.model.xy;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.tracecompass.internal.tmf.core.model.TmfXyResponseFactory;
+import org.eclipse.tracecompass.tmf.core.model.CommonStatusMessage;
+import org.eclipse.tracecompass.tmf.core.response.ITmfResponse;
 import org.eclipse.tracecompass.tmf.core.response.TmfModelResponse;
 
 /**
@@ -42,4 +45,20 @@ public interface ITmfXYDataProvider {
      * @since 5.0
      */
     TmfModelResponse<ITmfXyModel> fetchXY(Map<String, Object> fetchParameters, @Nullable IProgressMonitor monitor);
+
+    /**
+     * Computes a tool tip for a time stamp and entry.
+     *
+     * @param fetchParameters
+     *            Query parameters, specifies the timestamp and item on which to
+     *            give more information
+     * @param monitor
+     *            Progress monitor
+     *
+     * @return A {@link TmfModelResponse} that encapsulate a map of Tooltips
+     * @since 10.2
+     */
+    default TmfModelResponse<Map<String, String>> fetchTooltip(Map<String, Object> fetchParameters, @Nullable IProgressMonitor monitor) {
+        return new TmfModelResponse<>(Collections.emptyMap(), ITmfResponse.Status.FAILED, CommonStatusMessage.TASK_CANCELLED);
+    }
 }
